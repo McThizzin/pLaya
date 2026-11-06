@@ -7,7 +7,7 @@ A Go (Bubble Tea + Lip Gloss) terminal client for `laya serve`. The TUI does not
 - **Engine:** `laya serve --models-dir models --port 8080 --device vulkan`, one process, multiple model families.
 - **Client (Go):** `net/http`, all calls wrapped in `tea.Cmd` so the UI never blocks. Requests are cancellable with `context.Context`.
 - **UI:** Bubble Tea for state, `bubbles` (textarea, list, viewport), `charmbracelet/huh` for the question forms, Lip Gloss for styling.
-- **Fixtures:** keep the captured JSON responses in `testdata/` and test the client with `httptest` and the TUI with `teatest`.
+- **Fixtures:** keep the captured JSON responses in `internal/api/testdata/` (the single canonical location) and test the client with `httptest` and the TUI by driving the model directly.
 
 ## 2. API contract (verified)
 
@@ -51,7 +51,7 @@ Errors: `{"error":{"code":"invalid_request_error","message":"...","param":"quest
 - For choice and score, `confidence` is 1 minus the normalized Shannon entropy of the probabilities. A near-flat distribution gives a very low value (harness `next` came back at 0.0787).
 - These two scales are not comparable. A 65/35 noul shows 0.65; a 65/35 two-way choice shows about 0.07.
 - `score` is the probability-weighted level index, 0 to n-1.
-- `action.act_probability` was exactly 1 in every answer of all 10 presets. Meaning unknown; keep it in the raw view only.
+- `action.act_probability` was 1 in every answer of the ten built-in presets, but a Kev noul answer returned 0 (`internal/api/testdata/noul_kev.json`). Meaning unknown; keep it in the raw view only.
 - Probabilities can saturate to exactly 0 or 1 (4-decimal rounding).
 
 ## 3. Limits and behavior (verified)
@@ -206,14 +206,18 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 1. Go client plus `/health` and one noul decide, printed plainly.
 2. Bubble Tea shell, async `tea.Cmd`, telemetry bar, warm-up call.
 3. Preset browser and Decision Lens, starting with `guard` (all noul plus one score and one choice).
-4. State Canvas with the length guard.
-5. Question Forge and the JSON toggle.
+4. State Canvas with the length guard. *(implemented: text/fields/raw tabs, live guard, model pin)*
+5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
 6. History, batch runner (4.6), A/B compare and benchmark pane (4.7).
 7. Process management (spawn); attach mode alone is enough until then.
 
+Fixtures were consolidated into `internal/api/testdata/`; the old root
+`fixtures/` directory is gone. Drafts are per preset and runs use the draft,
+so editing never mutates the server copy.
+
 ## 7. Open questions
 
-- What `action.act_probability` represents (always 1 so far).
+- What `action.act_probability` represents (1 in the built-in presets, 0 in `noul_kev.json`).
 - Error shape for an invalid question `type` and for a missing `questions` field.
 - Kev's truncation cap is confirmed at 2048 by laya info; still unknown whether its answers differ in shape.
 - Whether the question text ever gets truncated (it appears to survive, unproven).

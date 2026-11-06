@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -26,6 +27,7 @@ type fake struct {
 	*httptest.Server
 	decideBody string
 	decideCode int
+	lastBody   []byte
 }
 
 func newFake(t *testing.T) *fake {
@@ -44,6 +46,7 @@ func newFake(t *testing.T) *fake {
 	mux.HandleFunc("/health", file("health.json"))
 	mux.HandleFunc("/v1/presets", file("presets.json"))
 	mux.HandleFunc("/v1/systemone", func(w http.ResponseWriter, r *http.Request) {
+		f.lastBody, _ = io.ReadAll(r.Body)
 		w.WriteHeader(f.decideCode)
 		_, _ = w.Write([]byte(f.decideBody))
 	})
@@ -80,6 +83,34 @@ func key(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyDown}
 	case "up":
 		return tea.KeyMsg{Type: tea.KeyUp}
+	case "delete":
+		return tea.KeyMsg{Type: tea.KeyDelete}
+	case "esc":
+		return tea.KeyMsg{Type: tea.KeyEscape}
+	case "tab":
+		return tea.KeyMsg{Type: tea.KeyTab}
+	case "shift+tab":
+		return tea.KeyMsg{Type: tea.KeyShiftTab}
+	case "home":
+		return tea.KeyMsg{Type: tea.KeyHome}
+	case "end":
+		return tea.KeyMsg{Type: tea.KeyEnd}
+	case "pgup":
+		return tea.KeyMsg{Type: tea.KeyPgUp}
+	case "pgdown":
+		return tea.KeyMsg{Type: tea.KeyPgDown}
+	case "ctrl+e":
+		return tea.KeyMsg{Type: tea.KeyCtrlE}
+	case "ctrl+f":
+		return tea.KeyMsg{Type: tea.KeyCtrlF}
+	case "ctrl+o":
+		return tea.KeyMsg{Type: tea.KeyCtrlO}
+	case "ctrl+q":
+		return tea.KeyMsg{Type: tea.KeyCtrlQ}
+	case "ctrl+r":
+		return tea.KeyMsg{Type: tea.KeyCtrlR}
+	case "ctrl+s":
+		return tea.KeyMsg{Type: tea.KeyCtrlS}
 	}
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
 }

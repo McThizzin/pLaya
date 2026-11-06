@@ -207,8 +207,9 @@ type DecideRequest struct {
 	Questions QuestionSet `json:"questions"`
 }
 
-// Action is returned with every answer. act_probability was exactly 1 in every
-// answer observed so far, so its meaning is unknown; keep it out of the UI.
+// Action is returned with every answer. act_probability is 1 in the built-in
+// presets but was 0 in one Kev answer, so its meaning is still unknown; keep
+// it out of the UI.
 type Action struct {
 	ActProbability float64 `json:"act_probability"`
 }

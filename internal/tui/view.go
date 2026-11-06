@@ -16,6 +16,13 @@ const listWidth = 24
 
 // View renders the screen: header, preset list | detail, telemetry bar, help.
 func (m Model) View() string {
+	if m.mode == screenState {
+		return m.viewState()
+	}
+	if m.mode == screenForge {
+		return m.viewForge()
+	}
+
 	w, h := m.width, m.height
 	if w < 60 {
 		w = 60
@@ -27,6 +34,9 @@ func (m Model) View() string {
 	}
 
 	header := titleStyle.Render("playa") + dimStyle.Render("  ·  "+m.client.BaseURL)
+	if m.notice != "" {
+		header += dimStyle.Render("  ·  " + m.notice)
+	}
 
 	left := clipLines(lipgloss.NewStyle().Width(listWidth).Render(m.viewList()), bodyH)
 	right := clipLines(lipgloss.NewStyle().Width(rightW).Render(m.viewDetail(rightW)), bodyH)
@@ -35,7 +45,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	help := dimStyle.Render(truncate("↑/↓ select · enter run · letter jumps to a preset · v raw JSON · ctrl+r reload · q quit", w))
+	help := dimStyle.Render(truncate("↑/↓ select · enter run · ctrl+e state · ctrl+q questions · f model · v raw · ctrl+r reload · q quit", w))
 	return strings.Join([]string{header, body, m.telemetryBar(w), help}, "\n")
 }
 
@@ -52,6 +62,9 @@ func (m Model) viewList() string {
 	}
 	for i, p := range m.presets {
 		line := fmt.Sprintf("[%s] %s", shortcutFor(p.Name), p.Name)
+		if m.dirty(p) {
+			line += " *"
+		}
 		if i == m.cursor {
 			b.WriteString(selectedStyle.Render("▶ "+line) + "\n")
 		} else {
@@ -69,17 +82,18 @@ func (m Model) viewDetail(width int) string {
 		}
 		return dimStyle.Render("waiting for presets…")
 	}
+	d := m.draftFor(p)
 	var b strings.Builder
-	b.WriteString(boldStyle.Render(p.Title) + "\n")
+	b.WriteString(boldStyle.Render(p.Title) + dimStyle.Render("  ·  model "+m.modelLabel()) + "\n")
 	b.WriteString(dimStyle.Render(p.Blurb) + "\n\n")
 
 	// state preview
 	b.WriteString(titleStyle.Render("State") + dimStyle.Render(" ("+p.StateKey+")") + "\n")
-	b.WriteString(truncate(p.StateText(), 280) + "\n")
-	if extra := len(p.State) - 1; extra > 0 {
+	b.WriteString(truncate(d.stateText(), 280) + "\n")
+	if extra := len(d.extraFields()); extra > 0 {
 		b.WriteString(dimStyle.Render(fmt.Sprintf("+ %d more field(s)", extra)) + "\n")
 	}
-	b.WriteString("\n" + m.lengthMeter(p) + "\n\n")
+	b.WriteString("\n" + m.lengthMeter(d) + "\n\n")
 
 	hasResult := m.result != nil && m.resultOf == p.Name
 
@@ -93,8 +107,8 @@ func (m Model) viewDetail(width int) string {
 	case hasResult:
 		b.WriteString(m.viewResult(p, width))
 	default:
-		b.WriteString(titleStyle.Render("Questions") + dimStyle.Render("  (enter to run)") + "\n")
-		for _, nq := range p.Questions {
+		b.WriteString(titleStyle.Render("Questions") + dimStyle.Render(fmt.Sprintf("  (%d, enter to run)", len(d.questions))) + "\n")
+		for _, nq := range d.questions {
 			b.WriteString(fmt.Sprintf("  %-18s %s\n", nq.Name, dimStyle.Render(nq.Type)))
 		}
 	}
@@ -133,12 +147,15 @@ func (m Model) viewResult(p api.Preset, width int) string {
 }
 
 // lengthMeter is the pre-send length guard line.
-func (m Model) lengthMeter(p api.Preset) string {
-	family, note := "english", " (assumed)"
-	if m.result != nil && m.resultOf == p.Name {
-		family, note = m.result.Family, ""
+func (m Model) lengthMeter(d *draft) string {
+	family := m.previewFamily(d)
+	note := ""
+	if m.model == "" || m.model == "auto" {
+		if m.result == nil || m.resultOf != d.preset {
+			note = " (assumed; press f to pin)"
+		}
 	}
-	r := lengthguard.Check(family, p.State, p.Questions)
+	r := lengthguard.Check(family, d.state, d.questions)
 	line := fg(levelColor(r.Level), fmt.Sprintf("~%d / %d tokens", r.Longest, r.Cap)) +
 		dimStyle.Render(" longest sequence, "+family+note)
 	if r.Level == lengthguard.Over {
@@ -146,6 +163,9 @@ func (m Model) lengthMeter(p api.Preset) string {
 	}
 	if r.HeadLevel != lengthguard.OK {
 		line += "\n" + fg(levelColor(r.HeadLevel), fmt.Sprintf("question part ~%d / %d tokens", r.Head, r.HeadCap))
+	}
+	if r.Longest > 0 {
+		line += "\n" + dimStyle.Render("cost follows the longest question: one long question slows the whole request")
 	}
 	return line
 }
@@ -282,6 +302,7 @@ func (m Model) telemetryBar(width int) string {
 	}
 	if m.result != nil {
 		parts = append(parts, m.result.Family)
+		parts = append(parts, m.result.Route)
 		last := fmt.Sprintf("last %.0fms (wall %dms)", m.result.Usage.LatencyMs, m.result.Wall.Milliseconds())
 		if m.lastCold {
 			last += " cold"
@@ -292,9 +313,6 @@ func (m Model) telemetryBar(width int) string {
 		if med, n, ok := m.tele.Median(kind); ok {
 			parts = append(parts, fmt.Sprintf("%s p50 %.0fms (n=%d)", kind, med, n))
 		}
-	}
-	if m.result != nil {
-		parts = append(parts, m.result.Route)
 	}
 	// Style.Width includes the horizontal padding, so the text gets width-2.
 	return barStyle.Width(width).Render(truncate(strings.Join(parts, " │ "), width-2))

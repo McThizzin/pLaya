@@ -4,9 +4,11 @@
 package tui
 
 import (
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/huh"
 
 	"playa/internal/api"
 	"playa/internal/lengthguard"
@@ -46,6 +48,14 @@ const (
 	statusError
 )
 
+type screen int
+
+const (
+	screenBrowse screen = iota
+	screenState
+	screenForge
+)
+
 // Model is the Bubble Tea model.
 type Model struct {
 	client        *api.Client
@@ -58,6 +68,13 @@ type Model struct {
 	presets   []api.Preset
 	loadErr   string // presets failed to load
 	cursor    int
+	model     string // "auto" or a pinned family
+	notice    string // transient footer message
+
+	drafts  map[string]*draft
+	mode    screen
+	stateEd *stateEditor
+	forgeEd *forgeEditor
 
 	running   bool
 	runErr    string
@@ -81,7 +98,9 @@ func New(c *api.Client, o Options) Model {
 	}
 	return Model{
 		client: c, opts: o, width: 100, height: 30,
-		tele: telemetry.New(10, 10*time.Second),
+		model:  "auto",
+		drafts: map[string]*draft{},
+		tele:   telemetry.New(10, 10*time.Second),
 	}
 }
 
@@ -102,14 +121,50 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		if m.mode == screenState && m.stateEd != nil {
+			m.stateEd.resize(m.width, m.height)
+			if m.stateEd.form != nil {
+				model, cmd := m.stateEd.form.Update(msg)
+				m.stateEd.form = model.(*huh.Form)
+				return m, cmd
+			}
+		}
+		if m.mode == screenForge && m.forgeEd != nil {
+			m.forgeEd.resize(m.width, m.height)
+			if m.forgeEd.form != nil {
+				model, cmd := m.forgeEd.form.Update(msg)
+				m.forgeEd.form = model.(*huh.Form)
+				return m, cmd
+			}
+		}
 		return m, nil
 
+	case tea.KeyMsg:
+		switch m.mode {
+		case screenState:
+			return m.handleStateKey(msg)
+		case screenForge:
+			return m.handleForgeKey(msg)
+		default:
+			return m.handleBrowseKey(msg)
+		}
+	}
+
+	// Editor widgets need cursor, blink and form messages too.
+	if handled, model, cmd := m.routeEditorMsg(msg); handled {
+		return model, cmd
+	}
+
+	switch msg := msg.(type) {
 	case healthMsg:
 		if msg.err != nil {
 			m.status, m.statusMsg = statusError, "cannot reach server: "+msg.err.Error()
 			return m, nil
 		}
 		m.health = msg.h
+		if m.model != "auto" && !contains(m.health.Families, m.model) {
+			m.model = "auto"
+		}
 		if m.opts.Warmup {
 			m.status = statusWarming
 			return m, m.warmupCmd()
@@ -124,6 +179,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.loadErr = ""
 		m.presets = msg.ps
+		m.drafts = make(map[string]*draft, len(msg.ps))
+		for _, p := range msg.ps {
+			m.drafts[p.Name] = newDraft(p)
+		}
 		if m.cursor >= len(m.presets) {
 			m.cursor = 0
 		}
@@ -160,14 +219,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastCold = m.tele.Observe(kind, msg.resp.Usage.LatencyMs, msg.at)
 		m.truncated = lengthguard.Truncated(msg.resp.Usage.InputTokens, len(msg.questions), lengthguard.Cap(msg.resp.Family))
 		return m, nil
-
-	case tea.KeyMsg:
-		return m.handleKey(msg)
 	}
 	return m, nil
 }
 
-func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+// routeEditorMsg forwards non-key messages to the active editor widget.
+func (m Model) routeEditorMsg(msg tea.Msg) (bool, tea.Model, tea.Cmd) {
+	switch m.mode {
+	case screenState:
+		e, d := m.stateEd, m.currentDraft()
+		if e == nil || d == nil {
+			return false, m, nil
+		}
+		if e.form != nil {
+			model, cmd := e.form.Update(msg)
+			e.form = model.(*huh.Form)
+			if e.form.State == huh.StateCompleted {
+				next, cmd := m.finishFieldForm(d)
+				return true, next, cmd
+			}
+			return true, m, cmd
+		}
+		switch e.sub {
+		case stateSubRaw:
+			var cmd tea.Cmd
+			e.raw, cmd = e.raw.Update(msg)
+			return true, m, cmd
+		case stateSubText:
+			var cmd tea.Cmd
+			e.area, cmd = e.area.Update(msg)
+			return true, m, cmd
+		}
+	case screenForge:
+		e, d := m.forgeEd, m.currentDraft()
+		if e == nil || d == nil {
+			return false, m, nil
+		}
+		if e.form != nil {
+			model, cmd := e.form.Update(msg)
+			e.form = model.(*huh.Form)
+			if e.form.State == huh.StateCompleted {
+				next, cmd := m.finishForgeForm(d)
+				return true, next, cmd
+			}
+			return true, m, cmd
+		}
+		switch e.sub {
+		case forgeSubRaw:
+			var cmd tea.Cmd
+			e.raw, cmd = e.raw.Update(msg)
+			return true, m, cmd
+		case forgeSubPreview:
+			var cmd tea.Cmd
+			e.preview, cmd = e.preview.Update(msg)
+			return true, m, cmd
+		}
+	}
+	return false, m, nil
+}
+
+func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k := msg.String(); k {
 	case "ctrl+c", "q":
 		return m, tea.Quit
@@ -185,11 +296,25 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.running, m.runErr = true, ""
-		return m, m.decideCmd(p)
+		return m, m.decideCmd(p, m.draftFor(p).request(m.model))
 	case "v":
 		m.showRaw = !m.showRaw
+	case "f":
+		m.cycleModel()
+	case "ctrl+e":
+		return m.openStateEditor()
+	case "ctrl+q":
+		return m.openForge()
+	case "R":
+		p, ok := m.selected()
+		if ok {
+			m.drafts[p.Name] = newDraft(p)
+			m.invalidate(p.Name)
+			m.notice = "reset " + p.Name + " to the server preset"
+		}
 	case "ctrl+r":
 		m.status, m.statusMsg, m.loadErr = statusConnecting, "", ""
+		m.notice = ""
 		return m, tea.Batch(m.healthCmd(), m.presetsCmd())
 	default:
 		if name, ok := shortcuts[k]; ok {
@@ -202,4 +327,65 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// cycleModel advances auto -> family -> ... -> auto.
+func (m *Model) cycleModel() {
+	opts := []string{"auto"}
+	if m.health != nil {
+		opts = append(opts, m.health.Families...)
+	}
+	idx := 0
+	for i, v := range opts {
+		if v == m.model {
+			idx = i
+			break
+		}
+	}
+	m.model = opts[(idx+1)%len(opts)]
+	if m.model == "auto" {
+		m.notice = "model: auto (routed by the server)"
+	} else {
+		m.notice = "model pinned: " + m.model
+	}
+}
+
+func contains(xs []string, want string) bool {
+	for _, x := range xs {
+		if x == want {
+			return true
+		}
+	}
+	return false
+}
+
+// modelLabel is the short form shown in the UI.
+func (m Model) modelLabel() string {
+	if m.model == "" || m.model == "auto" {
+		return "auto"
+	}
+	return m.model
+}
+
+// previewFamily is the family used for the length guard before a request.
+func (m Model) previewFamily(d *draft) string {
+	if m.model != "" && m.model != "auto" {
+		return m.model
+	}
+	if d != nil && m.result != nil && m.resultOf == d.preset {
+		return m.result.Family
+	}
+	return "english"
+}
+
+func (m Model) dirty(p api.Preset) bool {
+	d, ok := m.drafts[p.Name]
+	return ok && d != nil && d.dirty
+}
+
+func (m Model) statusLine() string {
+	if m.notice != "" {
+		return m.notice
+	}
+	return fmt.Sprintf("model %s", m.modelLabel())
 }

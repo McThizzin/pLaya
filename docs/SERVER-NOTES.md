@@ -13,7 +13,7 @@ convaiinnovations/laya* and kev-0.8b. Numbers are from that machine.
 - noul: `noul` = P(yes); `confidence` = max(p, 1-p).
 - choice: `choice` + `probabilities` by key; `confidence` = 1 - normalized entropy.
 - score: `score` = expected level index; `legend` + `probabilities` keyed "0".."n-1"; criteria is an ordered array.
-- `action.act_probability` was always 1; meaning unknown.
+- `action.act_probability` was 1 in the ten built-in presets, but a custom Kev noul answer returned 0 (`internal/api/testdata/noul_kev.json`); meaning unknown.
 
 ## Limits
 - max_len 512 english, 1024 multilingual, 2048 kev; max_opts 16; max_batch 8 (GGUF default, `--max-batch` lowers it).
@@ -32,4 +32,9 @@ convaiinnovations/laya* and kev-0.8b. Numbers are from that machine.
 - Temperatures are baked in and depend on question type and option count (english: choice 11+ options uses 0.10, 3-5 uses 1.76). Compare certainty only between similar questions.
 
 ## Open
-- Meaning of `act_probability`; error shape for an invalid question type; lazy-loading confirmation; cause of slow first calls after idle; whether `--max-batch` can exceed 8; behavior past head_max_len.
+- Meaning of `act_probability` (1 in the presets, 0 in the Kev capture); error shape for an invalid question type; lazy-loading confirmation; cause of slow first calls after idle; whether `--max-batch` can exceed 8; behavior past head_max_len.
+
+All captured fixtures now live in `internal/api/testdata/` (including the
+`run_*.json` preset captures and the Kev noul/criteria files). The root
+`fixtures/` directory was removed; update any notes or scripts that still
+point there.

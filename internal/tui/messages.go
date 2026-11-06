@@ -65,12 +65,12 @@ func (m Model) warmupCmd() tea.Cmd {
 	}
 }
 
-func (m Model) decideCmd(p api.Preset) tea.Cmd {
+func (m Model) decideCmd(p api.Preset, req api.DecideRequest) tea.Cmd {
 	c, to, now := m.client, m.opts.Timeout, m.opts.Now
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), to)
 		defer cancel()
-		resp, err := c.Decide(ctx, p.Request())
-		return decideMsg{preset: p.Name, questions: p.Questions, resp: resp, err: err, at: now()}
+		resp, err := c.Decide(ctx, req)
+		return decideMsg{preset: p.Name, questions: req.Questions, resp: resp, err: err, at: now()}
 	}
 }
