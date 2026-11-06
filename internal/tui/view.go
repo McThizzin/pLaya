@@ -22,6 +22,9 @@ func (m Model) View() string {
 	if m.mode == screenForge {
 		return m.viewForge()
 	}
+	if m.mode == screenHistory {
+		return m.viewHistory()
+	}
 
 	w, h := m.width, m.height
 	if w < 60 {
@@ -45,7 +48,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}
@@ -123,11 +126,16 @@ func (m Model) viewDetail(width int) string {
 }
 
 func (m Model) viewResult(p api.Preset, width int) string {
+	return renderDecisions(p.Name, m.summaries, width, m.truncated)
+}
+
+// renderDecisions is shared by the browse result and stored history entries.
+func renderDecisions(preset string, summaries []lens.Summary, width int, truncated bool) string {
 	var b strings.Builder
 
 	// harness: the next-action choice gets a banner
-	if p.Name == "harness" {
-		for _, s := range m.summaries {
+	if preset == "harness" {
+		for _, s := range summaries {
 			if s.Name == "next" {
 				b.WriteString(renderBanner(s, width) + "\n\n")
 			}
@@ -136,7 +144,7 @@ func (m Model) viewResult(p api.Preset, width int) string {
 
 	b.WriteString(titleStyle.Render("Decisions") + "\n")
 	nameW, labelW := 0, 0
-	for _, s := range m.summaries {
+	for _, s := range summaries {
 		if n := len([]rune(s.Name)); n > nameW {
 			nameW = n
 		}
@@ -144,10 +152,10 @@ func (m Model) viewResult(p api.Preset, width int) string {
 			labelW = n
 		}
 	}
-	for _, s := range m.summaries {
+	for _, s := range summaries {
 		b.WriteString(renderSummary(s, nameW, labelW, width) + "\n")
 	}
-	if m.truncated {
+	if truncated {
 		b.WriteString("\n" + fg(colAmber, "input_tokens shows the state hit the cap: its end was cut silently") + "\n")
 	}
 	return b.String()

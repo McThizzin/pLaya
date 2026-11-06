@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"playa/internal/api"
+	"playa/internal/history"
 	"playa/internal/langdetect"
 	"playa/internal/lengthguard"
 	"playa/internal/lens"
@@ -42,6 +43,8 @@ type Options struct {
 	Now     func() time.Time // injectable clock for tests
 	// Detect runs `laya detect-lang` for the route preview. Nil disables it.
 	Detect func(ctx context.Context, text string) (langdetect.Preview, error)
+	// HistoryPath persists run history. Empty keeps it in memory only.
+	HistoryPath string
 }
 
 type status int
@@ -59,6 +62,7 @@ const (
 	screenBrowse screen = iota
 	screenState
 	screenForge
+	screenHistory
 )
 
 // Model is the Bubble Tea model.
@@ -80,6 +84,12 @@ type Model struct {
 	mode    screen
 	stateEd *stateEditor
 	forgeEd *forgeEditor
+
+	history       *history.Store
+	historyPath   string
+	historyErr    string
+	historyCursor int
+	historyRaw    bool
 
 	running     bool
 	runSeq      int
@@ -111,12 +121,22 @@ func New(c *api.Client, o Options) Model {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return Model{
+	m := Model{
 		client: c, opts: o, width: 100, height: 30,
-		model:  "auto",
-		drafts: map[string]*draft{},
-		tele:   telemetry.New(10, 10*time.Second),
+		model:   "auto",
+		drafts:  map[string]*draft{},
+		tele:    telemetry.New(10, 10*time.Second),
+		history: history.New(history.DefaultMax),
 	}
+	if o.HistoryPath != "" {
+		st, err := history.Load(o.HistoryPath, history.DefaultMax)
+		m.history = st
+		m.historyPath = o.HistoryPath
+		if err != nil {
+			m.historyErr = "history: " + err.Error()
+		}
+	}
+	return m
 }
 
 // Init loads health and presets in parallel.
@@ -160,6 +180,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleStateKey(msg)
 		case screenForge:
 			return m.handleForgeKey(msg)
+		case screenHistory:
+			return m.handleHistoryKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
@@ -244,23 +266,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if errors.As(msg.err, &apiErr) {
 				m.runErrParam = apiErr.Param
 			}
+			m.recordHistory(msg, false, m.runErrParam)
+			if msg.replayOf > 0 {
+				m.notice = fmt.Sprintf("replay of #%d failed", msg.replayOf)
+			}
 			return m, nil
 		}
 		m.runErr = ""
 		m.runErrParam = ""
 		m.result, m.resultOf = msg.resp, msg.preset
-		m.summaries = m.summaries[:0:0]
-		for _, nq := range msg.questions {
-			if a, ok := msg.resp.Answers[nq.Name]; ok {
-				m.summaries = append(m.summaries, lens.Summarize(nq.Name, a, lens.Options{}))
-			}
-		}
+		m.summaries = summarize(msg.request.Questions, msg.resp)
 		kind := "preset"
-		if len(msg.questions) == 1 {
+		if len(msg.request.Questions) == 1 {
 			kind = "single"
 		}
 		m.lastCold = m.tele.Observe(kind, msg.resp.Usage.LatencyMs, msg.at)
-		m.truncated = lengthguard.Truncated(msg.resp.Usage.InputTokens, len(msg.questions), lengthguard.Cap(msg.resp.Family))
+		m.truncated = lengthguard.Truncated(msg.resp.Usage.InputTokens, len(msg.request.Questions), lengthguard.Cap(msg.resp.Family))
+		m.recordHistory(msg, m.lastCold, "")
+		if msg.replayOf > 0 {
+			m.notice = fmt.Sprintf("replayed run #%d", msg.replayOf)
+		}
 		return m, nil
 	}
 	return m, nil
@@ -342,21 +367,17 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.runSeq++
 		ctx, cancel := context.WithCancel(context.Background())
 		m.runCancel = cancel
-		return m, m.decideCmd(ctx, p, m.draftFor(p).request(m.model), m.runSeq)
+		return m, m.decideCmd(ctx, p.Name, m.draftFor(p).request(m.model), m.runSeq, 0)
 	case "esc":
-		if m.running {
-			if m.runCancel != nil {
-				m.runCancel()
-			}
-			m.running, m.runCancel = false, nil
-			m.runSeq++
-			m.runErr, m.runErrParam = "", ""
+		if m.cancelRun() {
 			m.notice = "cancelled the in-flight request"
 		}
 	case "v":
 		m.showRaw = !m.showRaw
 	case "f":
 		m.cycleModel()
+	case "H":
+		return m.openHistory()
 	case "ctrl+e":
 		return m.openStateEditor()
 	case "ctrl+q":
@@ -369,11 +390,7 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.notice = "reset " + p.Name + " to the server preset"
 		}
 	case "ctrl+r":
-		if m.running && m.runCancel != nil {
-			m.runCancel()
-			m.running, m.runCancel = false, nil
-			m.runSeq++
-		}
+		m.cancelRun()
 		m.status, m.statusMsg, m.loadErr = statusConnecting, "", ""
 		m.notice = ""
 		return m, tea.Batch(m.healthCmd(), m.presetsCmd())

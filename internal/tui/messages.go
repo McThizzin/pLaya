@@ -26,12 +26,13 @@ type (
 		at   time.Time
 	}
 	decideMsg struct {
-		preset    string
-		seq       int
-		questions api.QuestionSet // request order, for display
-		resp      *api.DecideResponse
-		err       error
-		at        time.Time
+		preset   string
+		seq      int
+		request  api.DecideRequest
+		replayOf int
+		resp     *api.DecideResponse
+		err      error
+		at       time.Time
 	}
 )
 
@@ -67,12 +68,12 @@ func (m Model) warmupCmd() tea.Cmd {
 }
 
 // decideCmd sends a request under a caller-owned context so esc can cancel it.
-func (m Model) decideCmd(ctx context.Context, p api.Preset, req api.DecideRequest, seq int) tea.Cmd {
+func (m Model) decideCmd(ctx context.Context, preset string, req api.DecideRequest, seq, replayOf int) tea.Cmd {
 	c, to, now := m.client, m.opts.Timeout, m.opts.Now
 	return func() tea.Msg {
 		reqCtx, cancel := context.WithTimeout(ctx, to)
 		defer cancel()
 		resp, err := c.Decide(reqCtx, req)
-		return decideMsg{preset: p.Name, seq: seq, questions: req.Questions, resp: resp, err: err, at: now()}
+		return decideMsg{preset: preset, seq: seq, request: req, replayOf: replayOf, resp: resp, err: err, at: now()}
 	}
 }

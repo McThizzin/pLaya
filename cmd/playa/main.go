@@ -12,6 +12,7 @@ import (
 
 	"playa/internal/api"
 	"playa/internal/check"
+	"playa/internal/history"
 	"playa/internal/langdetect"
 	"playa/internal/tui"
 )
@@ -50,9 +51,11 @@ func main() {
 		return
 	}
 
+	historyPath, _ := history.DefaultPath()
 	p := tea.NewProgram(tui.New(c, tui.Options{
-		Warmup:  !*noWarmup,
-		Timeout: *timeout,
+		Warmup:      !*noWarmup,
+		Timeout:     *timeout,
+		HistoryPath: historyPath,
 		Detect: func(ctx context.Context, text string) (langdetect.Preview, error) {
 			return langdetect.Detect(ctx, *layaPath, text)
 		},

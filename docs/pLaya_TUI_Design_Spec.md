@@ -163,7 +163,7 @@ Run a file of states through one preset or saved question set and review every r
 
 ### 4.8 Extras
 
-Run history with replay; A/B compare across two targets (family vs family, or quant vs quant on two ports); threshold rules that map answers to actions; export as `curl`, Python SDK snippet or Jev schema; live-as-you-type mode with a small ad-hoc question set (debounce, cancel in-flight); non-interactive mode (`echo text | playa --preset guard --json`); read-only model inspector (checkpoint, max\_len, max\_batch, size buckets, prompt template, baked-in temperatures) via `laya info`, `laya detect-lang`, `laya list-presets`.
+Run history with replay *(implemented: last 50 runs persisted under the user config dir, `H` opens the list, replay re-sends the stored request and is recorded as a new entry)*; A/B compare across two targets (family vs family, or quant vs quant on two ports); threshold rules that map answers to actions; export as `curl`, Python SDK snippet or Jev schema; live-as-you-type mode with a small ad-hoc question set (debounce, cancel in-flight); non-interactive mode (`echo text | playa --preset guard --json`); read-only model inspector (checkpoint, max\_len, max\_batch, size buckets, prompt template, baked-in temperatures) via `laya info`, `laya detect-lang`, `laya list-presets`.
 
 ## 5. Go types
 
@@ -208,7 +208,7 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 3. Preset browser and Decision Lens, starting with `guard` (all noul plus one score and one choice).
 4. State Canvas with the length guard. *(implemented: text/fields/raw tabs, live guard, model pin)*
 5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
-6. History, batch runner (4.6), A/B compare and benchmark pane (4.7).
+6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6), A/B compare and benchmark pane (4.7).
 7. Process management (spawn); attach mode alone is enough until then.
 
 Fixtures were consolidated into `internal/api/testdata/`; the old root

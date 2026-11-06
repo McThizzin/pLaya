@@ -83,7 +83,7 @@ func (d *draft) deleteField(key string) {
 }
 
 func (d *draft) request(model string) api.DecideRequest {
-	req := api.DecideRequest{State: d.state, Questions: forge.Clone(d.questions)}
+	req := api.DecideRequest{State: cloneState(d.state), Questions: forge.Clone(d.questions)}
 	if model != "" && model != "auto" {
 		req.Model = model
 	}

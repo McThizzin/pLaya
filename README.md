@@ -48,6 +48,7 @@ imports) if you publish it.
 | `esc` | cancel the in-flight request |
 | `ctrl+e` | open the State Canvas |
 | `ctrl+q` | open the Question Forge |
+| `H` | open run history (uppercase; `h` jumps to harness) |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
 | `v` | toggle the raw JSON response |
@@ -79,12 +80,26 @@ the server's published copy, and edited presets show a dirty marker. `R` on
 the browser discards the draft. A server error that names a `questions.<key>`
 param is shown with a hint, and `ctrl+q` jumps to that question.
 
+### Run history (`H`)
+
+Every completed decide call is stored, including failures. The store keeps the
+50 most recent runs and persists them to
+`os.UserConfigDir()/playa/history.json` (`~/.config/playa/history.json` on
+Linux, mode `0600`). In the history screen `j`/`k` move, `enter` replays the
+selected run, `v` toggles the raw JSON response, and `esc` returns to the
+browser (or cancels an in-flight replay). A replay re-sends the exact request
+that was stored, not the current edited draft. Replayed runs are recorded as
+new entries marked `replay of #N`, and the original is never overwritten.
+Failed runs keep the request and the error, so a bad payload can be inspected
+and retried after the preset or model changes.
+
 ## Layout
 
 ```
 cmd/playa/            flags, wiring
 internal/api/         stdlib-only client + types (ordered questions, errors); fixtures in testdata/
 internal/forge/       ordered question sets, validation, save/load under the user config dir
+internal/history/     bounded run history, deep-copied entries, atomic JSON persistence
 internal/langdetect/  `laya detect-lang` runner and output parser for the route preview
 internal/lens/        answer -> winner, runner-up gap, certainty, contested/saturated flags
 internal/lengthguard/ token estimate, per-family caps, silent-truncation detection
@@ -111,8 +126,8 @@ captured output. The TUI tests use small **synthetic** decide responses
 
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
-the State Canvas and Question Forge flows, so they cover request payloads
-without a terminal.
+the State Canvas, Question Forge and history/replay flows, so they cover
+request payloads without a terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -121,7 +136,7 @@ is the first thing to try; then `./bin/playa` against
 ## Not built yet (see the spec's build order)
 
 - Snippet library and windowed mode
-- Run history, batch runner, A/B compare, benchmark pane
+- Batch runner, A/B compare, benchmark pane
 - Spawning `laya serve` / `laya daemon` and the Launchpad
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)
