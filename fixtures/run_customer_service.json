@@ -1,0 +1,54 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 8/20",
+  "answers": {
+    "next_action": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.883,
+      "choice": "refund_cancel",
+      "probabilities": {
+        "refund_keep": 0.0112,
+        "refund_cancel": 0.9711,
+        "save_offer": 0.0074,
+        "escalate": 0.0103
+      }
+    },
+    "already_churned": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8266,
+      "noul": 0.8266
+    },
+    "save_probability": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.6477,
+      "score": 0.2099,
+      "legend": {
+        "0": "already gone",
+        "1": "long shot",
+        "2": "possible with a goodwill gesture",
+        "3": "likely to stay if fixed quickly"
+      },
+      "probabilities": {
+        "0": 0.8819,
+        "1": 0.0542,
+        "2": 0.0359,
+        "3": 0.028
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 280,
+    "output_tokens": 0,
+    "latency_ms": 206.885
+  }
+}

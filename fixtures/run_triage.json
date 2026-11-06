@@ -1,0 +1,72 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 13/24",
+  "answers": {
+    "intent": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8835,
+      "choice": "technical_help",
+      "probabilities": {
+        "refund": 0.0034,
+        "technical_help": 0.9617,
+        "billing_question": 0.0022,
+        "information": 0.0014,
+        "cancellation": 0.0116,
+        "other": 0.0198
+      }
+    },
+    "is_urgent": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7865,
+      "noul": 0.2135
+    },
+    "frustration": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.2698,
+      "score": 1.7257,
+      "legend": {
+        "0": "calm and neutral",
+        "1": "concerned but civil",
+        "2": "clearly annoyed",
+        "3": "very angry or using strong language"
+      },
+      "probabilities": {
+        "0": 0.0434,
+        "1": 0.2744,
+        "2": 0.5952,
+        "3": 0.087
+      }
+    },
+    "refund_requested": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8275,
+      "noul": 0.1725
+    },
+    "churn_risk": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.727,
+      "noul": 0.727
+    }
+  },
+  "usage": {
+    "input_tokens": 484,
+    "output_tokens": 0,
+    "latency_ms": 362.411
+  }
+}

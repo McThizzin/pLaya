@@ -1,0 +1,6 @@
+/bin/
+/playa
+*.test
+*.out
+.DS_Store
+/captures/

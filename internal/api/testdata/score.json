@@ -1,0 +1,30 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 5/8",
+  "answers": {
+    "urgency": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.6883,
+      "score": 1.8894,
+      "legend": {
+        "0": "can wait",
+        "1": "this week",
+        "2": "today"
+      },
+      "probabilities": {
+        "0": 0.0258,
+        "1": 0.0589,
+        "2": 0.9152
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 45,
+    "output_tokens": 0,
+    "latency_ms": 297.521
+  }
+}

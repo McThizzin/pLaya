@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "invalid_request_error",
+    "message": "score questions require a nonempty criteria list",
+    "param": "questions.urgency.criteria"
+  }
+}

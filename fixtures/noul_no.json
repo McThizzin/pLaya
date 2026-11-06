@@ -1,0 +1,20 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 5/8",
+  "answers": {
+    "spam": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.6465,
+      "noul": 0.6465
+    }
+  },
+  "usage": {
+    "input_tokens": 46,
+    "output_tokens": 0,
+    "latency_ms": 58.5129
+  }
+}

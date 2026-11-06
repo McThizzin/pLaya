@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "device": "vulkan:0",
+  "families": [
+    "english"
+  ],
+  "family": "english",
+  "model": "laya",
+  "last_route": "english",
+  "last_reason": "forced english"
+}

@@ -1,0 +1,13 @@
+{
+  "models": [
+    {"name": "english", "description": "English ModernBERT-large DecisionModel (convaiinnovations/laya) compiled by ggmlc.", "release_date": "2026-09-20"},
+    {"name": "kev-0.8b", "description": "Kev 0.8B (Qwen3.5 Gated DeltaNet + pointer head, jaredpalmer/kev-0.8b) compiled by ggmlc.", "release_date": "2026-09-20"},
+    {"name": "multilingual", "description": "Multilingual mmBERT DecisionModel (convaiinnovations/laya-multilingual) compiled by ggmlc.", "release_date": "2026-09-20"},
+    {"name": "typed-decisions", "description": "English typed-decisions specialist (convaiinnovations/laya-typed-decisions) compiled by ggmlc.", "release_date": "2026-09-20"},
+    {"name": "laya", "description": "Alias for the English Laya family.", "release_date": "2026-09-20"},
+    {"name": "jev-latest", "description": "TypeSafe SDK default model alias; served locally by Laya English.", "release_date": "2026-09-20"},
+    {"name": "laya-multilingual", "description": "Alias for the multilingual Laya family.", "release_date": "2026-09-20"},
+    {"name": "laya-typed-decisions", "description": "Alias for the typed-decisions Laya family.", "release_date": "2026-09-20"},
+    {"name": "jaredpalmer/kev-0.8b", "description": "Hugging Face id for kev-0.8b.", "release_date": "2026-09-20"}
+  ]
+}

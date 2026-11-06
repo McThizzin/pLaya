@@ -1,0 +1,64 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 3/17",
+  "answers": {
+    "difficulty": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.2491,
+      "score": 2.073,
+      "legend": {
+        "0": "trivial: a lookup or one-liner",
+        "1": "easy: short answer, no reasoning",
+        "2": "moderate: several steps",
+        "3": "hard: long multi-step reasoning or specialist knowledge"
+      },
+      "probabilities": {
+        "0": 0.0249,
+        "1": 0.1414,
+        "2": 0.5694,
+        "3": 0.2642
+      }
+    },
+    "domain": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8152,
+      "choice": "code",
+      "probabilities": {
+        "code": 0.9335,
+        "math_or_logic": 0.0201,
+        "writing": 0.0188,
+        "factual_lookup": 0.0019,
+        "data_analysis": 0.0233,
+        "chitchat": 0.0024
+      }
+    },
+    "needs_tools": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9119,
+      "noul": 0.0881
+    },
+    "is_sensitive": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9999,
+      "noul": 0.0001
+    }
+  },
+  "usage": {
+    "input_tokens": 348,
+    "output_tokens": 0,
+    "latency_ms": 258.706
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "status": "ok",
+  "device": "vulkan:0",
+  "families": ["english", "kev-0.8b", "multilingual", "typed-decisions"],
+  "family": "auto",
+  "model": "laya",
+  "last_route": "english",
+  "last_reason": "short latin text; default english"
+}

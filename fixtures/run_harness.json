@@ -1,0 +1,62 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 10/37",
+  "answers": {
+    "next": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.0787,
+      "choice": "tool",
+      "probabilities": {
+        "act": 0.2616,
+        "tool": 0.4231,
+        "ask_user": 0.102,
+        "stop": 0.2133
+      }
+    },
+    "looping": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7769,
+      "noul": 0.7769
+    },
+    "unsafe": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8542,
+      "noul": 0.1458
+    },
+    "progress": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.3849,
+      "score": 1.2919,
+      "legend": {
+        "0": "none / spinning",
+        "1": "diagnosed but not fixed",
+        "2": "partial fix",
+        "3": "ready to stop"
+      },
+      "probabilities": {
+        "0": 0.0356,
+        "1": 0.6723,
+        "2": 0.2568,
+        "3": 0.0353
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 408,
+    "output_tokens": 0,
+    "latency_ms": 260.317
+  }
+}

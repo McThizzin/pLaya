@@ -1,0 +1,63 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 7/22",
+  "answers": {
+    "policy_ok": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9161,
+      "noul": 0.0839
+    },
+    "category": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.4484,
+      "choice": "meals",
+      "probabilities": {
+        "travel": 0.0242,
+        "meals": 0.7054,
+        "software": 0.0274,
+        "office": 0.0403,
+        "other": 0.2026
+      }
+    },
+    "audit_risk": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.4385,
+      "score": 1.1219,
+      "legend": {
+        "0": "routine and well documented",
+        "1": "minor policy gray area",
+        "2": "likely exception needed",
+        "3": "probable rejection"
+      },
+      "probabilities": {
+        "0": 0.0919,
+        "1": 0.7737,
+        "2": 0.055,
+        "3": 0.0794
+      }
+    },
+    "needs_human": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9173,
+      "noul": 0.0827
+    }
+  },
+  "usage": {
+    "input_tokens": 402,
+    "output_tokens": 0,
+    "latency_ms": 253.414
+  }
+}

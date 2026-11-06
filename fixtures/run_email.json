@@ -1,0 +1,86 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 14/25",
+  "answers": {
+    "category": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9846,
+      "choice": "billing",
+      "probabilities": {
+        "billing": 0.9967,
+        "technical": 0.0006,
+        "sales": 0.0005,
+        "security": 0.001,
+        "hr": 0.0003,
+        "other": 0.0008
+      }
+    },
+    "is_spam": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7963,
+      "noul": 0.2037
+    },
+    "is_phishing": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.813,
+      "noul": 0.187
+    },
+    "urgency": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.2439,
+      "score": 1.3945,
+      "legend": {
+        "0": "no time pressure",
+        "1": "needs attention soon",
+        "2": "blocking issue or hard deadline"
+      },
+      "probabilities": {
+        "0": 0.0406,
+        "1": 0.5243,
+        "2": 0.4351
+      }
+    },
+    "needs_reply": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9046,
+      "noul": 0.0954
+    },
+    "churn_risk": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7519,
+      "noul": 0.2481
+    },
+    "refund_requested": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8769,
+      "noul": 0.8769
+    }
+  },
+  "usage": {
+    "input_tokens": 648,
+    "output_tokens": 0,
+    "latency_ms": 989.302
+  }
+}

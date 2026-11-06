@@ -1,0 +1,64 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 3/15",
+  "answers": {
+    "toxic": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9996,
+      "noul": 0.0004
+    },
+    "harassment": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 1,
+      "noul": 0
+    },
+    "threat": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 1,
+      "noul": 0
+    },
+    "spam": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 1,
+      "noul": 0
+    },
+    "severity": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.4884,
+      "score": 0.3074,
+      "legend": {
+        "0": "no rule-breaking: ordinary on-topic post",
+        "1": "mild: rude tone or off-topic, no target",
+        "2": "clear violation: insults, harassment or spam aimed at someone",
+        "3": "severe: threats, hate speech or calls for violence"
+      },
+      "probabilities": {
+        "0": 0.7643,
+        "1": 0.1745,
+        "2": 0.0506,
+        "3": 0.0106
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 401,
+    "output_tokens": 0,
+    "latency_ms": 284.113
+  }
+}

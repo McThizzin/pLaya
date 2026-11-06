@@ -1,0 +1,15 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "forced english",
+  "answers": {
+    "tone": {
+      "type": "choice",
+      "action": {"act_probability": 1},
+      "confidence": 0.7902,
+      "choice": "angry",
+      "probabilities": {"calm": 0.0331, "angry": 0.9669}
+    }
+  },
+  "usage": {"input_tokens": 39, "output_tokens": 0, "latency_ms": 76.2455}
+}

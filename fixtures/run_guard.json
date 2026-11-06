@@ -1,0 +1,72 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 8/18",
+  "answers": {
+    "jailbreak": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 1,
+      "noul": 1
+    },
+    "prompt_injection": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 1,
+      "noul": 1
+    },
+    "sensitive_data": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8202,
+      "noul": 0.8202
+    },
+    "harm_severity": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.2891,
+      "score": 2.3408,
+      "legend": {
+        "0": "none: ordinary request",
+        "1": "minor: mildly inappropriate",
+        "2": "serious: unsafe advice or abuse",
+        "3": "severe: dangerous or illegal"
+      },
+      "probabilities": {
+        "0": 0.0285,
+        "1": 0.0595,
+        "2": 0.4547,
+        "3": 0.4573
+      }
+    },
+    "topic": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7546,
+      "choice": "security_testing",
+      "probabilities": {
+        "product_support": 0.0172,
+        "coding": 0.0631,
+        "general_knowledge": 0.0023,
+        "personal_advice": 0.0125,
+        "security_testing": 0.8988,
+        "other": 0.0061
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 358,
+    "output_tokens": 0,
+    "latency_ms": 267.993
+  }
+}

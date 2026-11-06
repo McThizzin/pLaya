@@ -1,0 +1,20 @@
+{
+  "model": "kev-0.8b",
+  "family": "kev-0.8b",
+  "route": "model kev-0.8b",
+  "answers": {
+    "billing": {
+      "type": "noul",
+      "action": {
+        "act_probability": 0
+      },
+      "confidence": 0.8799,
+      "noul": 0.8799
+    }
+  },
+  "usage": {
+    "input_tokens": 75,
+    "output_tokens": 0,
+    "latency_ms": 852.569
+  }
+}

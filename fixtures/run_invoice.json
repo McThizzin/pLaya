@@ -1,0 +1,62 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 7/25",
+  "answers": {
+    "matches_po": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.9167,
+      "noul": 0.0833
+    },
+    "duplicate": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.8501,
+      "noul": 0.8501
+    },
+    "decision": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.0681,
+      "choice": "reject",
+      "probabilities": {
+        "pay": 0.2436,
+        "short_pay": 0.2544,
+        "hold": 0.1022,
+        "reject": 0.3998
+      }
+    },
+    "confidence_gap": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.3212,
+      "score": 2.1002,
+      "legend": {
+        "0": "none",
+        "1": "small rounding / tax difference",
+        "2": "material hours or rate mismatch",
+        "3": "clear duplicate or wrong vendor"
+      },
+      "probabilities": {
+        "0": 0.016,
+        "1": 0.1095,
+        "2": 0.6329,
+        "3": 0.2417
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 408,
+    "output_tokens": 0,
+    "latency_ms": 252.237
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "model": "laya",
+  "family": "english",
+  "route": "english words 6/32",
+  "answers": {
+    "true_positive": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.7952,
+      "noul": 0.2048
+    },
+    "severity": {
+      "type": "score",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.0937,
+      "score": 1.7867,
+      "legend": {
+        "0": "noise / likely false positive",
+        "1": "low: watch",
+        "2": "medium: investigate today",
+        "3": "high: contain immediately"
+      },
+      "probabilities": {
+        "0": 0.1095,
+        "1": 0.2097,
+        "2": 0.4655,
+        "3": 0.2154
+      }
+    },
+    "playbook": {
+      "type": "choice",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.0522,
+      "choice": "ignore",
+      "probabilities": {
+        "ignore": 0.3419,
+        "monitor": 0.2083,
+        "reset_session": 0.3298,
+        "isolate": 0.1199
+      }
+    },
+    "page_oncall": {
+      "type": "noul",
+      "action": {
+        "act_probability": 1
+      },
+      "confidence": 0.969,
+      "noul": 0.031
+    }
+  },
+  "usage": {
+    "input_tokens": 415,
+    "output_tokens": 0,
+    "latency_ms": 258.163
+  }
+}
