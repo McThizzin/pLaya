@@ -4,6 +4,8 @@
 package tui
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"playa/internal/api"
+	"playa/internal/langdetect"
 	"playa/internal/lengthguard"
 	"playa/internal/lens"
 	"playa/internal/telemetry"
@@ -37,6 +40,8 @@ type Options struct {
 	Warmup  bool             // send a tiny request after connecting
 	Timeout time.Duration    // per request; first calls can load a model, so keep it generous
 	Now     func() time.Time // injectable clock for tests
+	// Detect runs `laya detect-lang` for the route preview. Nil disables it.
+	Detect func(ctx context.Context, text string) (langdetect.Preview, error)
 }
 
 type status int
@@ -76,13 +81,23 @@ type Model struct {
 	stateEd *stateEditor
 	forgeEd *forgeEditor
 
-	running   bool
-	runErr    string
-	result    *api.DecideResponse
-	resultOf  string // preset the result belongs to
-	summaries []lens.Summary
-	truncated bool // the response shows the state hit the cap
-	showRaw   bool
+	running     bool
+	runSeq      int
+	runCancel   context.CancelFunc
+	runErr      string
+	runErrParam string
+	result      *api.DecideResponse
+	resultOf    string // preset the result belongs to
+	summaries   []lens.Summary
+	truncated   bool // the response shows the state hit the cap
+	showRaw     bool
+
+	routeSeq     int
+	routePreset  string
+	routeText    string
+	routePreview langdetect.Preview
+	routeErr     string
+	routePending bool
 
 	tele     *telemetry.Tracker
 	lastCold bool
@@ -148,6 +163,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		default:
 			return m.handleBrowseKey(msg)
 		}
+
+	case routeTickMsg:
+		if m.mode != screenState || msg.seq != m.routeSeq {
+			return m, nil
+		}
+		return m, m.routeDetectCmd(msg.text, msg.seq)
+
+	case routeMsg:
+		if m.mode != screenState || msg.seq != m.routeSeq {
+			return m, nil
+		}
+		m.routePending = false
+		if msg.err != nil {
+			m.routePreview, m.routeErr = langdetect.Preview{}, msg.err.Error()
+			return m, nil
+		}
+		m.routePreview, m.routeErr = msg.preview, ""
+		return m, nil
 	}
 
 	// Editor widgets need cursor, blink and form messages too.
@@ -199,12 +232,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case decideMsg:
+		if msg.seq != m.runSeq {
+			return m, nil // cancelled or superseded
+		}
 		m.running = false
+		m.runCancel = nil
 		if msg.err != nil {
 			m.runErr = msg.err.Error()
+			m.runErrParam = ""
+			var apiErr *api.APIError
+			if errors.As(msg.err, &apiErr) {
+				m.runErrParam = apiErr.Param
+			}
 			return m, nil
 		}
 		m.runErr = ""
+		m.runErrParam = ""
 		m.result, m.resultOf = msg.resp, msg.preset
 		m.summaries = m.summaries[:0:0]
 		for _, nq := range msg.questions {
@@ -295,8 +338,21 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if !ok || m.running {
 			return m, nil
 		}
-		m.running, m.runErr = true, ""
-		return m, m.decideCmd(p, m.draftFor(p).request(m.model))
+		m.running, m.runErr, m.runErrParam = true, "", ""
+		m.runSeq++
+		ctx, cancel := context.WithCancel(context.Background())
+		m.runCancel = cancel
+		return m, m.decideCmd(ctx, p, m.draftFor(p).request(m.model), m.runSeq)
+	case "esc":
+		if m.running {
+			if m.runCancel != nil {
+				m.runCancel()
+			}
+			m.running, m.runCancel = false, nil
+			m.runSeq++
+			m.runErr, m.runErrParam = "", ""
+			m.notice = "cancelled the in-flight request"
+		}
 	case "v":
 		m.showRaw = !m.showRaw
 	case "f":
@@ -313,6 +369,11 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.notice = "reset " + p.Name + " to the server preset"
 		}
 	case "ctrl+r":
+		if m.running && m.runCancel != nil {
+			m.runCancel()
+			m.running, m.runCancel = false, nil
+			m.runSeq++
+		}
 		m.status, m.statusMsg, m.loadErr = statusConnecting, "", ""
 		m.notice = ""
 		return m, tea.Batch(m.healthCmd(), m.presetsCmd())
@@ -371,6 +432,9 @@ func (m Model) modelLabel() string {
 func (m Model) previewFamily(d *draft) string {
 	if m.model != "" && m.model != "auto" {
 		return m.model
+	}
+	if f := m.routeFamily(d); f != "" {
+		return f
 	}
 	if d != nil && m.result != nil && m.resultOf == d.preset {
 		return m.result.Family

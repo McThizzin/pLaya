@@ -12,6 +12,7 @@ import (
 
 	"playa/internal/api"
 	"playa/internal/check"
+	"playa/internal/langdetect"
 	"playa/internal/tui"
 )
 
@@ -22,6 +23,7 @@ func main() {
 		endpoint = flag.String("endpoint", "systemone", "decide endpoint: systemone or decide")
 		timeout  = flag.Duration("timeout", 30*time.Second, "per-request timeout; the first call to a family can load a model")
 		noWarmup = flag.Bool("no-warmup", false, "skip the warm-up request after connecting")
+		layaPath = flag.String("laya", envOr("LAYA_BIN", "laya"), "path to the laya CLI for the route preview (env LAYA_BIN)")
 		doCheck  = flag.Bool("check", false, "run a plain-text connectivity check and exit (no TUI)")
 	)
 	flag.Parse()
@@ -48,7 +50,13 @@ func main() {
 		return
 	}
 
-	p := tea.NewProgram(tui.New(c, tui.Options{Warmup: !*noWarmup, Timeout: *timeout}), tea.WithAltScreen())
+	p := tea.NewProgram(tui.New(c, tui.Options{
+		Warmup:  !*noWarmup,
+		Timeout: *timeout,
+		Detect: func(ctx context.Context, text string) (langdetect.Preview, error) {
+			return langdetect.Detect(ctx, *layaPath, text)
+		},
+	}), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "playa:", err)
 		os.Exit(1)

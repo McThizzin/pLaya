@@ -45,7 +45,11 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	help := dimStyle.Render(truncate("↑/↓ select · enter run · ctrl+e state · ctrl+q questions · f model · v raw · ctrl+r reload · q quit", w))
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · f model · v raw · ctrl+r reload · q quit"
+	if m.running {
+		helpText = "esc cancel · running… · q quit"
+	}
+	help := dimStyle.Render(truncate(helpText, w))
 	return strings.Join([]string{header, body, m.telemetryBar(w), help}, "\n")
 }
 
@@ -100,6 +104,9 @@ func (m Model) viewDetail(width int) string {
 	switch {
 	case m.runErr != "":
 		b.WriteString(errStyle.Render(m.runErr) + "\n")
+		if hint := paramHint(m.runErrParam); hint != "" {
+			b.WriteString(dimStyle.Render(hint) + "\n")
+		}
 	case m.running:
 		b.WriteString(dimStyle.Render("running…") + "\n")
 	case hasResult && m.showRaw:
@@ -151,7 +158,10 @@ func (m Model) lengthMeter(d *draft) string {
 	family := m.previewFamily(d)
 	note := ""
 	if m.model == "" || m.model == "auto" {
-		if m.result == nil || m.resultOf != d.preset {
+		switch {
+		case m.routeFamily(d) != "":
+			note = " (route preview)"
+		case m.result == nil || m.resultOf != d.preset:
 			note = " (assumed; press f to pin)"
 		}
 	}

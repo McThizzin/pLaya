@@ -103,7 +103,7 @@ Errors: `{"error":{"code":"invalid_request_error","message":"...","param":"quest
 
 ### 4.2 Preset Playground
 
-POST a preset's `state` and `questions` directly. Shortcuts: `g` guard, `e` email, `x` expense, `t` triage, `m` moderation, `r` router, `s` security, `i` invoice, `c` customer\_service, `h` harness.
+POST a preset's `state` and `questions` directly. Shortcuts: `g` guard, `e` email, `x` expense, `t` triage, `m` moderation, `r` router, `s` security, `i` invoice, `c` customer\_service, `h` harness. An in-flight request is cancelled with `esc`; server errors that carry `error.param` point at the offending state or question.
 
 Show an ETA before sending (about 25 ms per question plus a fixed cost on this GPU). Warn at 9 or more questions that latency roughly doubles.
 
@@ -111,7 +111,7 @@ Show an ETA before sending (about 25 ms per question plus a fixed cost on this G
 
 - Three form shapes: choice (key plus optional description rows, max 16), score (ordered, reorderable level list, min 2), noul (optional true/false descriptions).
 - Lint: warn when an instruction references a backticked key that is not in the state.
-- Map server errors to fields using `error.param`.
+- Map server errors to fields using `error.param`. *(implemented: the browser shows the param and `ctrl+q` selects the named question)*
 - Form / raw JSON toggle with a live payload preview.
 - Preserve question order and criteria order (decode with `json.RawMessage`, keep a separate key slice).
 - Save and load question sets as files under the user config directory.
@@ -125,7 +125,7 @@ Show an ETA before sending (about 25 ms per question plus a fixed cost on this G
 - **Length guard (mandatory, the server will not warn):** estimate tokens client-side (about 4 chars per token for English, fewer for CJK) per question sequence, including the instructions and criteria. Warn at about 70% of the cap, and show that text beyond the cap is ignored from the end. After a call, flag `input_tokens == n_questions x cap`.
 - Optional **windowed mode** for long documents: split the state into windows, run them as one batch, and show the strongest window.
 
-* **Route preview (no model needed):** `laya detect-lang --text <STR>` prints key: value lines (`script`, `english`, `words`, `english_hits`, `ratio`, `route`, `reason`) without loading a model. Its `reason` matched the server's `route` string for the same sentence (`english words 5/8`). Run it on a debounced pause while the user types, so the canvas can show the likely family and route before any decide call, and show the weak-English warning early.
+* **Route preview (no model needed):** `laya detect-lang --text <STR>` prints key: value lines (`script`, `english`, `words`, `english_hits`, `ratio`, `route`, `reason`) without loading a model. Its `reason` matched the server's `route` string for the same sentence (`english words 5/8`). Run it on a debounced pause while the user types, so the canvas can show the likely family and route before any decide call, and show the weak-English warning early. *(implemented: 350 ms debounce, route feeds the length guard while the model is on auto)*
 * **Cost drivers:** the server pads every question in a forward to the longest one (`pad: max-in-batch`), so cost follows questions x the longest sequence, not the sum of tokens. Show the longest sequence in the length meter, and tell the user that one long question slows the whole request.
 * **Where truncation lands:** Laya's template puts the question and options first and the state last, so an over-long state loses its tail and the question survives. In a Kev test the question also survived a 4,000-token state (which end of the state Kev cuts was not tested). Length warnings should talk about the end of the state.
 

@@ -19,6 +19,9 @@ func (m Model) viewState() string {
 		dimStyle.Render(fmt.Sprintf("  ·  %s  ·  %s  ·  model %s", d.preset, d.stateKey, m.modelLabel()))
 	meter := m.lengthMeter(d)
 	prefix := header + "\n" + meter
+	if line := m.routeLine(); line != "" {
+		prefix += "\n" + line
+	}
 
 	var info string
 	if e.err != "" {

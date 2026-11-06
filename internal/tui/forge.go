@@ -97,6 +97,14 @@ func (m Model) openForge() (tea.Model, tea.Cmd) {
 	}
 	d := m.draftFor(p)
 	m.forgeEd = newForgeEditor(d, m.width, m.height)
+	if name := questionParam(m.runErrParam); name != "" {
+		for i, nq := range d.questions {
+			if nq.Name == name {
+				m.forgeEd.cursor = i
+				break
+			}
+		}
+	}
 	m.mode = screenForge
 	return m, nil
 }

@@ -34,6 +34,7 @@ imports) if you publish it.
 | `-api-key` | env `LAYA_API_KEY` or `TYPESAFE_API_KEY` | sent as `Authorization: Bearer ...` |
 | `-endpoint` | `systemone` | `systemone` or `decide` (same response in the one case checked) |
 | `-timeout` | `30s` | per request; the first call to a family may load a model |
+| `-laya` | `laya` (env `LAYA_BIN`) | CLI used for the route preview |
 | `-no-warmup` | off | skip the warm-up request after connecting |
 | `-check` | off | run the connectivity check and exit |
 
@@ -44,6 +45,7 @@ imports) if you publish it.
 | `up` / `down`, `k` / `j` | select a preset |
 | `g e x t m r s i c h` | jump to guard, email, expense, triage, moderation, router, security, invoice, customer_service, harness |
 | `enter` | run the selected preset's edited draft |
+| `esc` | cancel the in-flight request |
 | `ctrl+e` | open the State Canvas |
 | `ctrl+q` | open the Question Forge |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
@@ -59,7 +61,9 @@ tab, where `a` adds a key/value pair, `e`/`enter` edits the selected one,
 `d` deletes it, and `ctrl+r` edits the whole state as raw JSON (`ctrl+s`
 parses and applies). `ctrl+f` cycles the model family without leaving the
 editor. The length meter updates as you type and names the longest sequence;
-`esc`/`ctrl+s` returns to the browser and keeps the draft.
+`esc`/`ctrl+s` returns to the browser and keeps the draft. After a short pause
+the canvas also runs `laya detect-lang` and shows the likely route, reason and
+script; that route feeds the length guard while the model is on `auto`.
 
 ### Question Forge (`ctrl+q`)
 
@@ -72,7 +76,8 @@ preserved; choice and noul options keep the order you type.
 
 Changes are per-preset drafts. Running a preset (`enter`) uses the draft, not
 the server's published copy, and edited presets show a dirty marker. `R` on
-the browser discards the draft.
+the browser discards the draft. A server error that names a `questions.<key>`
+param is shown with a hint, and `ctrl+q` jumps to that question.
 
 ## Layout
 
@@ -80,6 +85,7 @@ the browser discards the draft.
 cmd/playa/            flags, wiring
 internal/api/         stdlib-only client + types (ordered questions, errors); fixtures in testdata/
 internal/forge/       ordered question sets, validation, save/load under the user config dir
+internal/langdetect/  `laya detect-lang` runner and output parser for the route preview
 internal/lens/        answer -> winner, runner-up gap, certainty, contested/saturated flags
 internal/lengthguard/ token estimate, per-family caps, silent-truncation detection
 internal/telemetry/   rolling median per request kind, cold calls excluded
@@ -114,7 +120,7 @@ is the first thing to try; then `./bin/playa` against
 
 ## Not built yet (see the spec's build order)
 
-- Route preview via `laya detect-lang`, the snippet library, and windowed mode
+- Snippet library and windowed mode
 - Run history, batch runner, A/B compare, benchmark pane
 - Spawning `laya serve` / `laya daemon` and the Launchpad
 - Separate single/preset medians are tracked but only presets can be run so far

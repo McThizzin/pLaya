@@ -84,7 +84,8 @@ func (m Model) openStateEditor() (tea.Model, tea.Cmd) {
 	d := m.draftFor(p)
 	m.stateEd = newStateEditor(d, m.width, m.height)
 	m.mode = screenState
-	return m, textarea.Blink
+	m, routeCmd := m.queueRoute(d, d.stateText())
+	return m, tea.Batch(textarea.Blink, routeCmd)
 }
 
 func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -126,7 +127,8 @@ func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			m.invalidate(d.preset)
 			e.status, e.err = "state applied", ""
-			return m, nil
+			m, cmd := m.queueRoute(d, d.stateText())
+			return m, cmd
 		}
 		var cmd tea.Cmd
 		e.raw, cmd = e.raw.Update(msg)
@@ -207,6 +209,9 @@ func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		d.setStateText(e.area.Value())
 		m.invalidate(d.preset)
 		e.status = ""
+		var routeCmd tea.Cmd
+		m, routeCmd = m.queueRoute(d, e.area.Value())
+		return m, tea.Batch(cmd, routeCmd)
 	}
 	return m, cmd
 }
@@ -358,5 +363,6 @@ func (m *Model) invalidate(preset string) {
 		m.truncated = false
 		m.showRaw = false
 		m.runErr = ""
+		m.runErrParam = ""
 	}
 }
