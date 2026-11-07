@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,8 +26,11 @@ func plain(s string) string { return ansi.ReplaceAllString(s, "") }
 // shaped like real responses, but the numbers are made up for the test.
 type fake struct {
 	*httptest.Server
+	mu         sync.Mutex
 	decideBody string
 	decideCode int
+	decideFunc func(body []byte, n int) (int, string)
+	decideN    int
 	lastBody   []byte
 }
 
@@ -46,9 +50,17 @@ func newFake(t *testing.T) *fake {
 	mux.HandleFunc("/health", file("health.json"))
 	mux.HandleFunc("/v1/presets", file("presets.json"))
 	mux.HandleFunc("/v1/systemone", func(w http.ResponseWriter, r *http.Request) {
-		f.lastBody, _ = io.ReadAll(r.Body)
-		w.WriteHeader(f.decideCode)
-		_, _ = w.Write([]byte(f.decideBody))
+		body, _ := io.ReadAll(r.Body)
+		f.mu.Lock()
+		f.lastBody = body
+		f.decideN++
+		code, resp := f.decideCode, f.decideBody
+		if f.decideFunc != nil {
+			code, resp = f.decideFunc(body, f.decideN)
+		}
+		f.mu.Unlock()
+		w.WriteHeader(code)
+		_, _ = w.Write([]byte(resp))
 	})
 	f.Server = httptest.NewServer(mux)
 	t.Cleanup(f.Close)

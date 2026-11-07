@@ -141,7 +141,7 @@ Show an ETA before sending (about 25 ms per question plus a fixed cost on this G
 
 ### 4.6 Batch runner
 
-Run a file of states through one preset or saved question set and review every result in one sortable table. This is the main way to test a question set against many inputs and see where the model is unsure.
+Run a file of states through one preset or saved question set and review every result in one sortable table. This is the main way to test a question set against many inputs and see where the model is unsure. *(implemented: JSONL/CSV input, 8-question chunks, two concurrent rows, cancel/resume, filters and sorting, JSONL/CSV export, summary strip)*
 
 - **Input:** JSONL (one state per line, a string or an object) or CSV (one column becomes `state_key`, the other columns become extra state fields). The snippet library works as a source too.
 - **Request plan:** keep every request at 8 questions or fewer (`max_batch=8`); a 9th question adds about 230 ms for a second pass. A larger set is split into chunks of 8 per state. Start with one `/v1/decide` call per state and a small worker pool (1 to 2); the server has one GPU, so measure before adding workers. The README describes a batch endpoint for many states with shared questions (untested here); adopt it only if it measurably beats the loop.
@@ -208,7 +208,7 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 3. Preset browser and Decision Lens, starting with `guard` (all noul plus one score and one choice).
 4. State Canvas with the length guard. *(implemented: text/fields/raw tabs, live guard, model pin)*
 5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
-6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6), A/B compare and benchmark pane (4.7).
+6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6) *(implemented: file input, chunked requests, sortable/filterable table, exports)*, A/B compare and benchmark pane (4.7).
 7. Process management (spawn); attach mode alone is enough until then.
 
 Fixtures were consolidated into `internal/api/testdata/`; the old root

@@ -25,6 +25,9 @@ func (m Model) View() string {
 	if m.mode == screenHistory {
 		return m.viewHistory()
 	}
+	if m.mode == screenBatch {
+		return m.viewBatch()
+	}
 
 	w, h := m.width, m.height
 	if w < 60 {
@@ -48,7 +51,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}

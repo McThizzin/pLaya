@@ -49,6 +49,7 @@ imports) if you publish it.
 | `ctrl+e` | open the State Canvas |
 | `ctrl+q` | open the Question Forge |
 | `H` | open run history (uppercase; `h` jumps to harness) |
+| `B` | open the batch runner (uppercase) |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
 | `v` | toggle the raw JSON response |
@@ -93,11 +94,33 @@ new entries marked `replay of #N`, and the original is never overwritten.
 Failed runs keep the request and the error, so a bad payload can be inspected
 and retried after the preset or model changes.
 
+### Batch runner (`B`)
+
+Runs a file of states through the selected preset's questions and shows every
+result in one table. `ctrl+o` opens a path prompt (`.jsonl`/`.ndjson` or
+`.csv`). JSONL has one state per line: a string or an object. CSV turns every
+column into a state field and uses the preset's `state_key` column for the row
+label. The question set is snapshotted when the screen opens; later edits do
+not change a run in progress.
+
+Questions are sent in chunks of 8 (`max_batch`), so a larger set costs one
+extra request per state. Two rows run concurrently; `r` starts or resumes the
+incomplete rows, `R` re-runs everything, and `esc` cancels the in-flight run
+without discarding finished rows. `j`/`k` move, `h`/`l` scroll columns, `enter`
+opens a row (with `v` for the raw responses), `f` cycles filters (all,
+contested, saturated, truncated, errors), `s`/`S` sort and reverse, and `t`
+cycles the noul positive threshold. `x` writes two files next to the input:
+`*.results.jsonl` with the full raw responses and `*.results.csv` with one
+answer, probability and certainty per question plus family, route, timing and
+token columns. The summary strip reports complete/failed rows, p50/p95 latency,
+tokens and rows per second, the noul positive rate, choice counts and truncation.
+
 ## Layout
 
 ```
 cmd/playa/            flags, wiring
 internal/api/         stdlib-only client + types (ordered questions, errors); fixtures in testdata/
+internal/batch/       batch file loaders, question chunking, row checks, summary, filters, exports
 internal/forge/       ordered question sets, validation, save/load under the user config dir
 internal/history/     bounded run history, deep-copied entries, atomic JSON persistence
 internal/langdetect/  `laya detect-lang` runner and output parser for the route preview
@@ -126,8 +149,8 @@ captured output. The TUI tests use small **synthetic** decide responses
 
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
-the State Canvas, Question Forge and history/replay flows, so they cover
-request payloads without a terminal.
+the State Canvas, Question Forge, history/replay and batch-runner flows, so
+they cover request payloads without a terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -136,7 +159,7 @@ is the first thing to try; then `./bin/playa` against
 ## Not built yet (see the spec's build order)
 
 - Snippet library and windowed mode
-- Batch runner, A/B compare, benchmark pane
+- A/B compare, benchmark pane
 - Spawning `laya serve` / `laya daemon` and the Launchpad
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)

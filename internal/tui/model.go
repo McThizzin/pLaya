@@ -63,6 +63,7 @@ const (
 	screenState
 	screenForge
 	screenHistory
+	screenBatch
 )
 
 // Model is the Bubble Tea model.
@@ -90,6 +91,8 @@ type Model struct {
 	historyErr    string
 	historyCursor int
 	historyRaw    bool
+
+	batch *batchSession
 
 	running     bool
 	runSeq      int
@@ -172,6 +175,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
+		if m.mode == screenBatch && m.batch != nil {
+			m.batch.resize(m.width, m.height)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -182,6 +188,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleForgeKey(msg)
 		case screenHistory:
 			return m.handleHistoryKey(msg)
+		case screenBatch:
+			return m.handleBatchKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
@@ -287,6 +295,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notice = fmt.Sprintf("replayed run #%d", msg.replayOf)
 		}
 		return m, nil
+
+	case batchLoadMsg:
+		return m.handleBatchLoad(msg)
+
+	case batchRowMsg:
+		return m.handleBatchRow(msg)
 	}
 	return m, nil
 }
@@ -378,6 +392,8 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.cycleModel()
 	case "H":
 		return m.openHistory()
+	case "B":
+		return m.openBatch()
 	case "ctrl+e":
 		return m.openStateEditor()
 	case "ctrl+q":
