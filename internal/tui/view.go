@@ -28,6 +28,9 @@ func (m Model) View() string {
 	if m.mode == screenBatch {
 		return m.viewBatch()
 	}
+	if m.mode == screenBench {
+		return m.viewBench()
+	}
 
 	w, h := m.width, m.height
 	if w < 60 {
@@ -51,7 +54,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}
@@ -129,7 +132,62 @@ func (m Model) viewDetail(width int) string {
 }
 
 func (m Model) viewResult(p api.Preset, width int) string {
-	return renderDecisions(p.Name, m.summaries, width, m.truncated)
+	out := renderDecisions(p.Name, m.summaries, width, m.truncated)
+	if m.result != nil && m.resultOf == p.Name {
+		out += "\n" + m.costLine(width)
+	}
+	return out
+}
+
+// costLine is the post-run readout. It intentionally leads with the numbers
+// that explain latency: server ms, ms per question, then throughput.
+func (m Model) costLine(width int) string {
+	r := m.result
+	if r == nil {
+		return ""
+	}
+	q := len(m.resultReq.Questions)
+	ms := r.Usage.LatencyMs
+	msPerQ := 0.0
+	tokPerSec, qPerSec := 0.0, 0.0
+	if q > 0 {
+		msPerQ = ms / float64(q)
+	}
+	tokens := r.Usage.InputTokens + r.Usage.OutputTokens
+	if ms > 0 {
+		tokPerSec = float64(tokens) / (ms / 1000)
+		qPerSec = float64(q) / (ms / 1000)
+	}
+	pred := ""
+	if m.predictor != nil {
+		rep := lengthguard.Check(r.Family, m.resultReq.State, m.resultReq.Questions)
+		p := m.predictor.Predict(r.Family, q, rep.Longest)
+		pred = fmt.Sprintf("predicted %.0fms (%s", p.MS, p.Source)
+		if p.Source.String() == "fit" {
+			pred += fmt.Sprintf(", n=%d", p.Samples)
+		}
+		pred += ")"
+	}
+	line1 := fmt.Sprintf("  wall %dms · server %.0fms · %d q · %.0f ms/q",
+		r.Wall.Milliseconds(), ms, q, msPerQ)
+	line2 := fmt.Sprintf("      %d in / %d out · %s tok/s · %s q/s",
+		r.Usage.InputTokens, r.Usage.OutputTokens, compact(tokPerSec), compact(qPerSec))
+	if pred != "" {
+		line2 += " · " + pred
+	}
+	return titleStyle.Render("Cost") + dimStyle.Render(truncate(line1, width-4)) + "\n" +
+		dimStyle.Render(truncate(line2, width))
+}
+
+func compact(v float64) string {
+	switch {
+	case v >= 1e6:
+		return fmt.Sprintf("%.1fM", v/1e6)
+	case v >= 1e3:
+		return fmt.Sprintf("%.1fk", v/1e3)
+	default:
+		return fmt.Sprintf("%.0f", v)
+	}
 }
 
 // renderDecisions is shared by the browse result and stored history entries.

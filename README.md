@@ -8,7 +8,9 @@ HTTP API of a running server and renders the decisions.
 Status: **usable playground.** It connects, lists the ten built-in presets, runs
 one against the server, and shows the answers with a length guard and a
 telemetry bar. The State Canvas edits a preset's state and the Question Forge
-edits its questions; both keep a per-preset draft that runs use directly.
+edits its questions; both keep a per-preset draft that runs use directly. Run
+history, a batch runner and a benchmark/cost pane cover repeated and comparative
+runs.
 
 ## Quick start
 
@@ -50,6 +52,7 @@ imports) if you publish it.
 | `ctrl+q` | open the Question Forge |
 | `H` | open run history (uppercase; `h` jumps to harness) |
 | `B` | open the batch runner (uppercase) |
+| `ctrl+b` | open the benchmark and cost pane |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
 | `v` | toggle the raw JSON response |
@@ -115,12 +118,38 @@ answer, probability and certainty per question plus family, route, timing and
 token columns. The summary strip reports complete/failed rows, p50/p95 latency,
 tokens and rows per second, the noul positive rate, choice counts and truncation.
 
+### Benchmark and cost pane (`ctrl+b`)
+
+Runs the selected preset's draft N times and summarizes warm latency. The
+default is 20 runs after 3 warm-up calls; `[`/`]` change the run count by 5
+(5 to 100), `w` cycles the warm-up count (3, 0, 1, 2), and `f` cycles the model
+between `auto` and the families from `/health`. `enter` starts a run, `esc`
+cancels one in progress (keeping completed warm runs) or returns to the
+browser. Warm-up calls are discarded, and the run count is saved only after it
+finishes. The view shows p50, p95, min, max, mean, ms per question, tokens per
+second and questions per second, with the two latest results for the preset
+side by side so two families or two runs can be compared.
+
+Results persist to `os.UserConfigDir()/playa/bench.json`
+(`~/.config/playa/bench.json` on Linux, mode `0600`) with the timestamp,
+family, device, server and run configuration.
+
+After every normal or batch run the result pane adds a cost readout: client
+wall time, server latency, question count, ms per question, input/output
+tokens, tokens per second, questions per second and a predicted latency with
+its source. The prediction starts from built-in defaults fitted to this GPU.
+Warm calls from normal runs, batch rows and benchmarks feed a rolling
+per-family fit; after 8 warm samples the fit replaces the defaults for that
+family, falling back to a global fit when a family is still quiet. Cold calls
+and failures are ignored. Persisted history seeds the predictor at startup.
+
 ## Layout
 
 ```
 cmd/playa/            flags, wiring
 internal/api/         stdlib-only client + types (ordered questions, errors); fixtures in testdata/
 internal/batch/       batch file loaders, question chunking, row checks, summary, filters, exports
+internal/bench/       latency predictor, benchmark stats, bounded result store
 internal/forge/       ordered question sets, validation, save/load under the user config dir
 internal/history/     bounded run history, deep-copied entries, atomic JSON persistence
 internal/langdetect/  `laya detect-lang` runner and output parser for the route preview
@@ -149,8 +178,8 @@ captured output. The TUI tests use small **synthetic** decide responses
 
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
-the State Canvas, Question Forge, history/replay and batch-runner flows, so
-they cover request payloads without a terminal.
+the State Canvas, Question Forge, history/replay, batch-runner and
+benchmark/cost flows, so they cover request payloads without a terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -159,7 +188,7 @@ is the first thing to try; then `./bin/playa` against
 ## Not built yet (see the spec's build order)
 
 - Snippet library and windowed mode
-- A/B compare, benchmark pane
+- A/B compare
 - Spawning `laya serve` / `laya daemon` and the Launchpad
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)

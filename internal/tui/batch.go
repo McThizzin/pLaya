@@ -256,6 +256,8 @@ func (m Model) handleBatchRow(msg batchRowMsg) (tea.Model, tea.Cmd) {
 			c := &row.Calls[i]
 			if c.Response != nil {
 				c.Cold = m.tele.Observe("batch", c.Response.Usage.LatencyMs, c.At)
+				req := api.DecideRequest{State: row.State, Questions: c.Questions}
+				m.observeRun(req, c.Response, c.At, c.Cold)
 			}
 		}
 	}

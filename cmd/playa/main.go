@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"playa/internal/api"
+	"playa/internal/bench"
 	"playa/internal/check"
 	"playa/internal/history"
 	"playa/internal/langdetect"
@@ -52,10 +53,12 @@ func main() {
 	}
 
 	historyPath, _ := history.DefaultPath()
+	benchPath, _ := bench.DefaultPath()
 	p := tea.NewProgram(tui.New(c, tui.Options{
 		Warmup:      !*noWarmup,
 		Timeout:     *timeout,
 		HistoryPath: historyPath,
+		BenchPath:   benchPath,
 		Detect: func(ctx context.Context, text string) (langdetect.Preview, error) {
 			return langdetect.Detect(ctx, *layaPath, text)
 		},

@@ -155,6 +155,8 @@ Run a file of states through one preset or saved question set and review every r
 
 ### 4.7 Benchmark pane and cost readout
 
+*(implemented: cost readout after normal and batch runs, built-in bench at `ctrl+b`, rolling per-family predictor, saved results. Not implemented: the `laya bench` subprocess wrapper and an explicit ETA in the batch summary.)*
+
 - **Cost readout after every run:** total ms, ms per question, input tokens, tokens per second, questions per second, and predicted vs actual time. Batch runs add states per second and total time.
 - **Predicted time:** start from the defaults measured on this GPU (about 70 ms plus 22 ms per question for 2 to 8 short questions; the email preset 359 ms at B=7, S=124; a second forward adds about 140 ms (email with --max-batch 4) to 230 ms (short questions) from the 9th question). Then replace them with a rolling fit of ms against B x S (questions times the longest sequence) per family from the user's own recent calls, since another GPU or model will differ. Cold calls after an idle pause are excluded.
 - **Built-in bench:** pick a preset or question set and send it N times (default 20 after 3 warmup calls). Report p50, p95, min, max, ms per question and tokens per second, for one family or two side by side.
@@ -208,7 +210,7 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 3. Preset browser and Decision Lens, starting with `guard` (all noul plus one score and one choice).
 4. State Canvas with the length guard. *(implemented: text/fields/raw tabs, live guard, model pin)*
 5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
-6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6) *(implemented: file input, chunked requests, sortable/filterable table, exports)*, A/B compare and benchmark pane (4.7).
+6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6) *(implemented: file input, chunked requests, sortable/filterable table, exports)*, benchmark pane (4.7) *(implemented: cost readout, warm-run stats, two-result comparison, persisted results, rolling latency fit)*, A/B compare.
 7. Process management (spawn); attach mode alone is enough until then.
 
 Fixtures were consolidated into `internal/api/testdata/`; the old root

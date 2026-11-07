@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/huh"
 
 	"playa/internal/api"
+	"playa/internal/bench"
 	"playa/internal/history"
 	"playa/internal/langdetect"
 	"playa/internal/lengthguard"
@@ -45,6 +46,8 @@ type Options struct {
 	Detect func(ctx context.Context, text string) (langdetect.Preview, error)
 	// HistoryPath persists run history. Empty keeps it in memory only.
 	HistoryPath string
+	// BenchPath persists benchmark results. Empty keeps them in memory only.
+	BenchPath string
 }
 
 type status int
@@ -64,6 +67,7 @@ const (
 	screenForge
 	screenHistory
 	screenBatch
+	screenBench
 )
 
 // Model is the Bubble Tea model.
@@ -94,12 +98,19 @@ type Model struct {
 
 	batch *batchSession
 
+	bench      *benchSession
+	benchStore *bench.Store
+	benchPath  string
+	benchErr   string
+	predictor  *bench.Predictor
+
 	running     bool
 	runSeq      int
 	runCancel   context.CancelFunc
 	runErr      string
 	runErrParam string
 	result      *api.DecideResponse
+	resultReq   api.DecideRequest
 	resultOf    string // preset the result belongs to
 	summaries   []lens.Summary
 	truncated   bool // the response shows the state hit the cap
@@ -126,10 +137,12 @@ func New(c *api.Client, o Options) Model {
 	}
 	m := Model{
 		client: c, opts: o, width: 100, height: 30,
-		model:   "auto",
-		drafts:  map[string]*draft{},
-		tele:    telemetry.New(10, 10*time.Second),
-		history: history.New(history.DefaultMax),
+		model:      "auto",
+		drafts:     map[string]*draft{},
+		tele:       telemetry.New(10, 10*time.Second),
+		history:    history.New(history.DefaultMax),
+		predictor:  bench.NewPredictor(200),
+		benchStore: bench.NewStore(bench.DefaultMax),
 	}
 	if o.HistoryPath != "" {
 		st, err := history.Load(o.HistoryPath, history.DefaultMax)
@@ -139,7 +152,52 @@ func New(c *api.Client, o Options) Model {
 			m.historyErr = "history: " + err.Error()
 		}
 	}
+	if o.BenchPath != "" {
+		st, err := bench.Load(o.BenchPath, bench.DefaultMax)
+		m.benchStore = st
+		m.benchPath = o.BenchPath
+		if err != nil {
+			m.benchErr = "bench: " + err.Error()
+		}
+	}
+	m.seedPredictor()
 	return m
+}
+
+// seedPredictor learns from the persisted warm runs so the first cost estimate
+// already reflects this machine rather than the built-in defaults.
+func (m *Model) seedPredictor() {
+	if m.history == nil || m.predictor == nil {
+		return
+	}
+	for _, e := range m.history.List() {
+		if e.Response == nil || e.Err != "" || e.Cold {
+			continue
+		}
+		r := lengthguard.Check(e.Response.Family, e.Request.State, e.Request.Questions)
+		m.predictor.Observe(bench.Sample{
+			Family:    e.Response.Family,
+			Questions: len(e.Request.Questions),
+			Tokens:    r.Longest,
+			LatencyMS: e.Response.Usage.LatencyMs,
+			At:        e.At,
+		})
+	}
+}
+
+// observeRun feeds one warm call to the latency predictor.
+func (m *Model) observeRun(req api.DecideRequest, resp *api.DecideResponse, at time.Time, cold bool) {
+	if m.predictor == nil || resp == nil || cold {
+		return
+	}
+	r := lengthguard.Check(resp.Family, req.State, req.Questions)
+	m.predictor.Observe(bench.Sample{
+		Family:    resp.Family,
+		Questions: len(req.Questions),
+		Tokens:    r.Longest,
+		LatencyMS: resp.Usage.LatencyMs,
+		At:        at,
+	})
 }
 
 // Init loads health and presets in parallel.
@@ -178,6 +236,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == screenBatch && m.batch != nil {
 			m.batch.resize(m.width, m.height)
 		}
+		if m.mode == screenBench && m.bench != nil {
+			m.bench.resize(m.width, m.height)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -190,6 +251,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleHistoryKey(msg)
 		case screenBatch:
 			return m.handleBatchKey(msg)
+		case screenBench:
+			return m.handleBenchKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
@@ -283,6 +346,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.runErr = ""
 		m.runErrParam = ""
 		m.result, m.resultOf = msg.resp, msg.preset
+		m.resultReq = msg.request
 		m.summaries = summarize(msg.request.Questions, msg.resp)
 		kind := "preset"
 		if len(msg.request.Questions) == 1 {
@@ -290,6 +354,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.lastCold = m.tele.Observe(kind, msg.resp.Usage.LatencyMs, msg.at)
 		m.truncated = lengthguard.Truncated(msg.resp.Usage.InputTokens, len(msg.request.Questions), lengthguard.Cap(msg.resp.Family))
+		m.observeRun(msg.request, msg.resp, msg.at, m.lastCold)
 		m.recordHistory(msg, m.lastCold, "")
 		if msg.replayOf > 0 {
 			m.notice = fmt.Sprintf("replayed run #%d", msg.replayOf)
@@ -301,6 +366,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case batchRowMsg:
 		return m.handleBatchRow(msg)
+
+	case benchRunMsg:
+		return m.handleBenchRun(msg)
 	}
 	return m, nil
 }
@@ -394,6 +462,8 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openHistory()
 	case "B":
 		return m.openBatch()
+	case "ctrl+b":
+		return m.openBench()
 	case "ctrl+e":
 		return m.openStateEditor()
 	case "ctrl+q":

@@ -73,8 +73,17 @@ func clock() func() time.Time {
 	return func() time.Time { t = t.Add(time.Second); return t }
 }
 
-func newModel(f *fake) Model {
-	return New(api.NewClient(f.URL), Options{Warmup: true, Timeout: 5 * time.Second, Now: clock()})
+func newModel(f *fake) Model { return newModelWith(f, Options{}) }
+
+func newModelWith(f *fake, o Options) Model {
+	o.Warmup = true
+	if o.Timeout == 0 {
+		o.Timeout = 5 * time.Second
+	}
+	if o.Now == nil {
+		o.Now = clock()
+	}
+	return New(api.NewClient(f.URL), o)
 }
 
 // step runs a command and feeds its message back into the model.
@@ -119,6 +128,8 @@ func key(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyCtrlO}
 	case "ctrl+q":
 		return tea.KeyMsg{Type: tea.KeyCtrlQ}
+	case "ctrl+b":
+		return tea.KeyMsg{Type: tea.KeyCtrlB}
 	case "ctrl+r":
 		return tea.KeyMsg{Type: tea.KeyCtrlR}
 	case "ctrl+s":
@@ -135,8 +146,13 @@ func press(m Model, s string) (Model, tea.Cmd) {
 // connected returns a model that has loaded health, presets and warmed up.
 func connected(t *testing.T, f *fake) Model {
 	t.Helper()
+	return connectedWith(t, f, Options{})
+}
+
+func connectedWith(t *testing.T, f *fake, o Options) Model {
+	t.Helper()
 	f.decideBody = warmupBody
-	m := newModel(f)
+	m := newModelWith(f, o)
 	m = step(t, m, m.healthCmd())
 	if m.status != statusWarming {
 		t.Fatalf("status after health = %v, want warming", m.status)
