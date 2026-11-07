@@ -84,6 +84,8 @@ Errors: `{"error":{"code":"invalid_request_error","message":"...","param":"quest
 
 ### 4.1 Launchpad (server and routing)
 
+*(implemented: `L` opens a form for binary, models dir, port, device, max batch and family; `s` spawns `laya serve`, polls `/health` every 500 ms for up to 30 seconds, and tails bounded output; `x` stops only the owned child; `a` attaches to an external server and never stops it; `w` warms every family from `/health`; Unix children get their own process group so Stop also takes down helpers. Not implemented: `laya daemon` transport, per-family `catalogued/loading/ready` state, multi-instance spawn, and forwarding a `-api-key` flag to the child; the environment, including `LAYA_API_KEY`, is inherited.)*
+
 - Spawn with `exec.Command`; poll `/health` for readiness; stream stdout and stderr to a log pane; handle signals so no orphaned GPU process remains.
 - **Attach mode:** detect an already-running server and never kill it on exit.
 - Pass `LAYA_API_KEY` through if set.
@@ -211,7 +213,7 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 4. State Canvas with the length guard. *(implemented: text/fields/raw tabs, live guard, model pin)*
 5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
 6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6) *(implemented: file input, chunked requests, sortable/filterable table, exports)*, benchmark pane (4.7) *(implemented: cost readout, warm-run stats, two-result comparison, persisted results, rolling latency fit)*, A/B compare (4.8) *(implemented: two concurrent targets, model and URL switching, disagreement view)*.
-7. Process management (spawn); attach mode alone is enough until then.
+7. Process management (spawn) *(implemented: owned `laya serve` child, attach mode, process-group stop, health polling, log tail, warm-all; `laya daemon` and multi-instance spawn remain)*.
 
 Fixtures were consolidated into `internal/api/testdata/`; the old root
 `fixtures/` directory is gone. Drafts are per preset and runs use the draft,

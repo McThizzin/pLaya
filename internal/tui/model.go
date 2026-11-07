@@ -16,6 +16,7 @@ import (
 	"playa/internal/bench"
 	"playa/internal/history"
 	"playa/internal/langdetect"
+	"playa/internal/launch"
 	"playa/internal/lengthguard"
 	"playa/internal/lens"
 	"playa/internal/telemetry"
@@ -48,6 +49,13 @@ type Options struct {
 	HistoryPath string
 	// BenchPath persists benchmark results. Empty keeps them in memory only.
 	BenchPath string
+	// LayaPath is the binary the Launchpad spawns. Empty means "laya".
+	LayaPath string
+	// ModelsDir is passed to `laya serve --models-dir`. Empty uses the
+	// documented ~/models/Laya/models location.
+	ModelsDir string
+	// Device is passed to `laya serve --device`. Empty means "vulkan".
+	Device string
 }
 
 type status int
@@ -69,6 +77,7 @@ const (
 	screenBatch
 	screenBench
 	screenAB
+	screenLaunch
 )
 
 // Model is the Bubble Tea model.
@@ -107,6 +116,10 @@ type Model struct {
 
 	ab *abSession
 
+	launch    *launchSession
+	launcher  *launch.Manager
+	launchers []*launch.Manager
+
 	running     bool
 	runSeq      int
 	runCancel   context.CancelFunc
@@ -137,6 +150,15 @@ func New(c *api.Client, o Options) Model {
 	}
 	if o.Now == nil {
 		o.Now = time.Now
+	}
+	if o.LayaPath == "" {
+		o.LayaPath = "laya"
+	}
+	if o.ModelsDir == "" {
+		o.ModelsDir = launch.DefaultModelsDir()
+	}
+	if o.Device == "" {
+		o.Device = "vulkan"
 	}
 	m := Model{
 		client: c, opts: o, width: 100, height: 30,
@@ -245,6 +267,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == screenAB && m.ab != nil {
 			m.ab.resize(m.width, m.height)
 		}
+		if m.mode == screenLaunch && m.launch != nil {
+			m.launch.resize(m.width, m.height)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -261,6 +286,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleBenchKey(msg)
 		case screenAB:
 			return m.handleABKey(msg)
+		case screenLaunch:
+			return m.handleLaunchKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
@@ -380,6 +407,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case abRunMsg:
 		return m.handleABRun(msg)
+
+	case launchStartMsg:
+		return m.handleLaunchStart(msg)
+
+	case launchHealthMsg:
+		return m.handleLaunchHealth(msg)
+
+	case launchPollMsg:
+		return m.handleLaunchPoll(msg)
+
+	case launchStopMsg:
+		return m.handleLaunchStop(msg)
+
+	case launchAttachMsg:
+		return m.handleLaunchAttach(msg)
+
+	case launchWarmMsg:
+		return m.handleLaunchWarm(msg)
+
+	case launchLogMsg:
+		return m.handleLaunchLog(msg)
 	}
 	return m, nil
 }
@@ -475,6 +523,8 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openBatch()
 	case "A":
 		return m.openAB()
+	case "L":
+		return m.openLaunch()
 	case "ctrl+b":
 		return m.openBench()
 	case "ctrl+e":

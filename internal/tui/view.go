@@ -34,6 +34,9 @@ func (m Model) View() string {
 	if m.mode == screenAB {
 		return m.viewAB()
 	}
+	if m.mode == screenLaunch {
+		return m.viewLaunch()
+	}
 
 	w, h := m.width, m.height
 	if w < 60 {
@@ -57,7 +60,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · A compare · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}

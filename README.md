@@ -10,7 +10,8 @@ one against the server, and shows the answers with a length guard and a
 telemetry bar. The State Canvas edits a preset's state and the Question Forge
 edits its questions; both keep a per-preset draft that runs use directly. Run
 history, a batch runner, A/B comparison and a benchmark/cost pane cover repeated
-and comparative runs.
+and comparative runs. A Launchpad can spawn, attach to and stop a `laya serve`
+process.
 
 ## Quick start
 
@@ -36,7 +37,9 @@ imports) if you publish it.
 | `-api-key` | env `LAYA_API_KEY` or `TYPESAFE_API_KEY` | sent as `Authorization: Bearer ...` |
 | `-endpoint` | `systemone` | `systemone` or `decide` (same response in the one case checked) |
 | `-timeout` | `30s` | per request; the first call to a family may load a model |
-| `-laya` | `laya` (env `LAYA_BIN`) | CLI used for the route preview |
+| `-laya` | `laya` (env `LAYA_BIN`) | CLI used for the route preview and the Launchpad |
+| `-models-dir` | `~/models/Laya/models` (env `LAYA_MODELS_DIR`) | `--models-dir` for a Launchpad spawn |
+| `-device` | `vulkan` (env `LAYA_DEVICE`) | `--device` for a Launchpad spawn |
 | `-no-warmup` | off | skip the warm-up request after connecting |
 | `-check` | off | run the connectivity check and exit |
 
@@ -53,6 +56,7 @@ imports) if you publish it.
 | `H` | open run history (uppercase; `h` jumps to harness) |
 | `B` | open the batch runner (uppercase) |
 | `A` | open the A/B compare screen (uppercase) |
+| `L` | open the Launchpad (uppercase) |
 | `ctrl+b` | open the benchmark and cost pane |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
@@ -162,6 +166,29 @@ disagreements. `esc` cancels a run, or returns to the browser when idle.
 Completed A/B calls are recorded in run history and feed the latency
 predictor like any other run.
 
+### Launchpad (`L`)
+
+Starts and stops a `laya serve` child process from the TUI. `j`/`k` select a
+field, `e`/`enter` edit it, `s` starts, `x` stops, `a` attaches to a server
+that is already listening, and `w` sends one tiny request to every family from
+`/health` so the first real call does not pay the model-load cost. `esc`
+returns to the browser; quitting from anywhere stops a child this session
+spawned.
+
+The editable fields are the `laya` binary, models dir, port, device, max batch
+and family. Max batch is omitted when empty, and `auto` omits `--family`. Start
+builds the command from the documented
+`laya serve --models-dir ... --port ... --device ...` form and polls
+`/health` every 500 ms for up to 30 seconds. The screen shows the target URL,
+the child PID and its state, plus the tail of the child's stdout/stderr.
+
+The manager owns only the process it spawned. Attach (`a`) checks a URL and
+switches the client without stopping anything, so an external `laya serve` is
+never killed. `x` refuses to touch it and says so. On Unix the child gets its
+own process group, so interrupt (then kill after a 3 second grace period) also
+takes down helpers it started. `SIGINT`/`SIGTERM` are routed through Bubble
+Tea's `Quit`, and `Close` stops every manager the session created.
+
 ## Layout
 
 ```
@@ -172,6 +199,7 @@ internal/bench/       latency predictor, benchmark stats, bounded result store
 internal/forge/       ordered question sets, validation, save/load under the user config dir
 internal/history/     bounded run history, deep-copied entries, atomic JSON persistence
 internal/langdetect/  `laya detect-lang` runner and output parser for the route preview
+internal/launch/      owned `laya serve` child, bounded logs, process-group stop
 internal/lens/        answer -> winner, runner-up gap, certainty, contested/saturated flags
 internal/lengthguard/ token estimate, per-family caps, silent-truncation detection
 internal/telemetry/   rolling median per request kind, cold calls excluded
@@ -198,8 +226,8 @@ captured output. The TUI tests use small **synthetic** decide responses
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
 the State Canvas, Question Forge, history/replay, batch-runner,
-benchmark/cost and A/B compare flows, so they cover request payloads without a
-terminal.
+benchmark/cost, A/B compare and Launchpad flows, so they cover request
+payloads without a terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -208,6 +236,6 @@ is the first thing to try; then `./bin/playa` against
 ## Not built yet (see the spec's build order)
 
 - Snippet library and windowed mode
-- Spawning `laya serve` / `laya daemon` and the Launchpad
+- Spawning `laya daemon` (the Launchpad starts `laya serve` only)
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)
