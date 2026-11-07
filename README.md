@@ -9,8 +9,8 @@ Status: **usable playground.** It connects, lists the ten built-in presets, runs
 one against the server, and shows the answers with a length guard and a
 telemetry bar. The State Canvas edits a preset's state and the Question Forge
 edits its questions; both keep a per-preset draft that runs use directly. Run
-history, a batch runner and a benchmark/cost pane cover repeated and comparative
-runs.
+history, a batch runner, A/B comparison and a benchmark/cost pane cover repeated
+and comparative runs.
 
 ## Quick start
 
@@ -52,6 +52,7 @@ imports) if you publish it.
 | `ctrl+q` | open the Question Forge |
 | `H` | open run history (uppercase; `h` jumps to harness) |
 | `B` | open the batch runner (uppercase) |
+| `A` | open the A/B compare screen (uppercase) |
 | `ctrl+b` | open the benchmark and cost pane |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
@@ -143,6 +144,24 @@ per-family fit; after 8 warm samples the fit replaces the defaults for that
 family, falling back to a global fit when a family is still quiet. Cold calls
 and failures are ignored. Persisted history seeds the predictor at startup.
 
+### A/B compare (`A`)
+
+Runs the selected preset's draft against two targets and marks the questions
+whose winners differ. A target is a server URL plus an optional pinned family.
+Both sides start on the current server: target A keeps the browser's current
+model and target B starts on the first family from `/health`, so `enter`
+immediately compares routed and pinned answers. Use two URLs to compare builds
+or quants on two servers.
+
+`tab` selects a target, `m` cycles its family (`auto` or one from `/health`),
+`u` edits its URL, and `r` resets the URL to the primary server. Both requests
+run concurrently, so a failure on one side does not hide the other. The result
+view shows each target's server latency, wall time, route, token counts and
+answers side by side (stacked on narrow terminals), followed by the list of
+disagreements. `esc` cancels a run, or returns to the browser when idle.
+Completed A/B calls are recorded in run history and feed the latency
+predictor like any other run.
+
 ## Layout
 
 ```
@@ -178,8 +197,9 @@ captured output. The TUI tests use small **synthetic** decide responses
 
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
-the State Canvas, Question Forge, history/replay, batch-runner and
-benchmark/cost flows, so they cover request payloads without a terminal.
+the State Canvas, Question Forge, history/replay, batch-runner,
+benchmark/cost and A/B compare flows, so they cover request payloads without a
+terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -188,7 +208,6 @@ is the first thing to try; then `./bin/playa` against
 ## Not built yet (see the spec's build order)
 
 - Snippet library and windowed mode
-- A/B compare
 - Spawning `laya serve` / `laya daemon` and the Launchpad
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)

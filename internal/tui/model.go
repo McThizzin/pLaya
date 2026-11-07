@@ -68,6 +68,7 @@ const (
 	screenHistory
 	screenBatch
 	screenBench
+	screenAB
 )
 
 // Model is the Bubble Tea model.
@@ -103,6 +104,8 @@ type Model struct {
 	benchPath  string
 	benchErr   string
 	predictor  *bench.Predictor
+
+	ab *abSession
 
 	running     bool
 	runSeq      int
@@ -239,6 +242,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == screenBench && m.bench != nil {
 			m.bench.resize(m.width, m.height)
 		}
+		if m.mode == screenAB && m.ab != nil {
+			m.ab.resize(m.width, m.height)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -253,6 +259,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleBatchKey(msg)
 		case screenBench:
 			return m.handleBenchKey(msg)
+		case screenAB:
+			return m.handleABKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
@@ -369,6 +377,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case benchRunMsg:
 		return m.handleBenchRun(msg)
+
+	case abRunMsg:
+		return m.handleABRun(msg)
 	}
 	return m, nil
 }
@@ -462,6 +473,8 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openHistory()
 	case "B":
 		return m.openBatch()
+	case "A":
+		return m.openAB()
 	case "ctrl+b":
 		return m.openBench()
 	case "ctrl+e":
