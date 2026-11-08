@@ -259,8 +259,10 @@ the State Canvas, Question Forge, snippet library, windowed mode,
 history/replay, batch-runner, benchmark/cost, A/B compare and Launchpad flows,
 so they cover request payloads without a terminal.
 
-It has **not** been run against your live four-family server yet. `make check`
-is the first thing to try; then `./bin/playa` against
+It has been live-smoke-tested against a running four-family `laya serve`:
+`/health`, `-check`, a decide through the TUI, snippet save and load, and a
+10-window windowed run. `make check` is still the quickest first step; then
+`./bin/playa` against
 `laya serve --models-dir ~/models/Laya/models/ --port 8080 --device vulkan`.
 
 ## Not built yet (see the spec's build order)
