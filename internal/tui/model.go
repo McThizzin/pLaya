@@ -78,6 +78,8 @@ const (
 	screenBench
 	screenAB
 	screenLaunch
+	screenSnippets
+	screenWindow
 )
 
 // Model is the Bubble Tea model.
@@ -119,6 +121,9 @@ type Model struct {
 	launch    *launchSession
 	launcher  *launch.Manager
 	launchers []*launch.Manager
+
+	snippets *snippetSession
+	windowed *windowSession
 
 	running     bool
 	runSeq      int
@@ -270,6 +275,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == screenLaunch && m.launch != nil {
 			m.launch.resize(m.width, m.height)
 		}
+		if m.mode == screenSnippets && m.snippets != nil {
+			m.snippets.resize(m.width, m.height)
+		}
+		if m.mode == screenWindow && m.windowed != nil {
+			m.windowed.resize(m.width, m.height)
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -288,18 +299,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleABKey(msg)
 		case screenLaunch:
 			return m.handleLaunchKey(msg)
+		case screenSnippets:
+			return m.handleSnippetKey(msg)
+		case screenWindow:
+			return m.handleWindowKey(msg)
 		default:
 			return m.handleBrowseKey(msg)
 		}
 
 	case routeTickMsg:
-		if m.mode != screenState || msg.seq != m.routeSeq {
+		if !m.statePreviewActive() || msg.seq != m.routeSeq {
 			return m, nil
 		}
 		return m, m.routeDetectCmd(msg.text, msg.seq)
 
 	case routeMsg:
-		if m.mode != screenState || msg.seq != m.routeSeq {
+		if !m.statePreviewActive() || msg.seq != m.routeSeq {
 			return m, nil
 		}
 		m.routePending = false
@@ -428,8 +443,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case launchLogMsg:
 		return m.handleLaunchLog(msg)
+
+	case windowResultMsg:
+		return m.handleWindowResult(msg)
 	}
 	return m, nil
+}
+
+// statePreviewActive reports whether a route preview still belongs to the
+// visible or hidden State Canvas. A snippet load can queue one while its own
+// screen is on top.
+func (m Model) statePreviewActive() bool {
+	if m.mode == screenState {
+		return true
+	}
+	return m.mode == screenSnippets && m.snippets != nil && m.snippets.returnTo == screenState
 }
 
 // routeEditorMsg forwards non-key messages to the active editor widget.
@@ -525,6 +553,8 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openAB()
 	case "L":
 		return m.openLaunch()
+	case "S":
+		return m.openSnippets(screenBrowse)
 	case "ctrl+b":
 		return m.openBench()
 	case "ctrl+e":

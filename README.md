@@ -11,7 +11,8 @@ telemetry bar. The State Canvas edits a preset's state and the Question Forge
 edits its questions; both keep a per-preset draft that runs use directly. Run
 history, a batch runner, A/B comparison and a benchmark/cost pane cover repeated
 and comparative runs. A Launchpad can spawn, attach to and stop a `laya serve`
-process.
+process. Reusable states live in a snippet library, and windowed mode runs a
+long document in overlapping, token-bounded pieces.
 
 ## Quick start
 
@@ -57,7 +58,10 @@ imports) if you publish it.
 | `B` | open the batch runner (uppercase) |
 | `A` | open the A/B compare screen (uppercase) |
 | `L` | open the Launchpad (uppercase) |
+| `S` | open the snippet library (uppercase) |
 | `ctrl+b` | open the benchmark and cost pane |
+| `ctrl+l` | open the snippet library from the State Canvas |
+| `ctrl+w` | open windowed mode from the State Canvas |
 | `f` | cycle the pinned model family (`auto` or one from `/health`) |
 | `R` | reset the selected preset's draft to the server copy |
 | `v` | toggle the raw JSON response |
@@ -74,6 +78,30 @@ editor. The length meter updates as you type and names the longest sequence;
 `esc`/`ctrl+s` returns to the browser and keeps the draft. After a short pause
 the canvas also runs `laya detect-lang` and shows the likely route, reason and
 script; that route feeds the length guard while the model is on `auto`.
+`ctrl+l` opens the snippet library and `ctrl+w` opens windowed mode with the
+text currently in the canvas.
+
+### Snippet library (`S`, or `ctrl+l` from the State Canvas)
+
+Saves the whole state object, its `state_key` and the source preset under
+`os.UserConfigDir()/playa/snippets` (`~/.config/playa/snippets` on Linux, mode
+`0600`). `j`/`k` move, `enter` replaces the current draft's state and key with
+the selected snippet, `s` saves the current draft under a name, `d` then `y`
+deletes, `v` shows the stored JSON, and `esc` goes back. Loading marks the
+draft dirty and refreshes the State Canvas textarea. A snippet saved from one
+preset can be loaded into another; its `state_key` replaces the draft's key.
+
+### Windowed mode (`ctrl+w`)
+
+Splits only the main text field into overlapping, token-bounded windows and
+runs the draft's questions once per window, sequentially. The screen starts at
+32 estimated tokens per window; `[`/`]` change the size by 16 tokens, `o`
+cycles the overlap (0%, 10%, 25%, 50%), `enter` runs, `j`/`k` select a window,
+`v` shows the raw response, and `esc` cancels a run or returns to the State
+Canvas. The window with the highest mean winner probability is marked
+`★ strongest` after the run. Every completed window is recorded in run history
+and feeds the latency predictor. The run uses a snapshot, so later canvas edits
+cannot change it.
 
 ### Question Forge (`ctrl+q`)
 
@@ -202,6 +230,8 @@ internal/langdetect/  `laya detect-lang` runner and output parser for the route 
 internal/launch/      owned `laya serve` child, bounded logs, process-group stop
 internal/lens/        answer -> winner, runner-up gap, certainty, contested/saturated flags
 internal/lengthguard/ token estimate, per-family caps, silent-truncation detection
+internal/snippet/     reusable state snapshots under the user config dir
+internal/window/      overlapping, token-bounded text splitter
 internal/telemetry/   rolling median per request kind, cold calls excluded
 internal/check/       the -check connectivity report
 internal/tui/         Bubble Tea model, draft state, State Canvas, Question Forge, views
@@ -225,9 +255,9 @@ captured output. The TUI tests use small **synthetic** decide responses
 
 `go vet ./...`, `go test ./...` and `go test -race ./...` pass with the pinned
 dependencies. The TUI tests drive the model through a fake server, including
-the State Canvas, Question Forge, history/replay, batch-runner,
-benchmark/cost, A/B compare and Launchpad flows, so they cover request
-payloads without a terminal.
+the State Canvas, Question Forge, snippet library, windowed mode,
+history/replay, batch-runner, benchmark/cost, A/B compare and Launchpad flows,
+so they cover request payloads without a terminal.
 
 It has **not** been run against your live four-family server yet. `make check`
 is the first thing to try; then `./bin/playa` against
@@ -235,7 +265,6 @@ is the first thing to try; then `./bin/playa` against
 
 ## Not built yet (see the spec's build order)
 
-- Snippet library and windowed mode
 - Spawning `laya daemon` (the Launchpad starts `laya serve` only)
 - Separate single/preset medians are tracked but only presets can be run so far
 - A real big-letter banner for the harness preset (spaced capitals for now)

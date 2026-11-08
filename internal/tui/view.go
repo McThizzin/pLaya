@@ -37,6 +37,12 @@ func (m Model) View() string {
 	if m.mode == screenLaunch {
 		return m.viewLaunch()
 	}
+	if m.mode == screenSnippets {
+		return m.viewSnippets()
+	}
+	if m.mode == screenWindow {
+		return m.viewWindow()
+	}
 
 	w, h := m.width, m.height
 	if w < 60 {
@@ -60,7 +66,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · S snippets · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}
@@ -107,7 +113,7 @@ func (m Model) viewDetail(width int) string {
 	b.WriteString(dimStyle.Render(p.Blurb) + "\n\n")
 
 	// state preview
-	b.WriteString(titleStyle.Render("State") + dimStyle.Render(" ("+p.StateKey+")") + "\n")
+	b.WriteString(titleStyle.Render("State") + dimStyle.Render(" ("+d.stateKey+")") + "\n")
 	b.WriteString(truncate(d.stateText(), 280) + "\n")
 	if extra := len(d.extraFields()); extra > 0 {
 		b.WriteString(dimStyle.Render(fmt.Sprintf("+ %d more field(s)", extra)) + "\n")

@@ -56,9 +56,9 @@ func (m Model) viewState() string {
 	case e.sub == stateSubRaw:
 		help = "ctrl+s parse and apply · esc cancel"
 	case e.sub == stateSubFields:
-		help = "j/k move · a add · e edit · d delete · tab text · ctrl+r raw · esc back"
+		help = "j/k move · a add · e edit · d delete · tab text · ctrl+r raw · ctrl+l snippets · ctrl+w windows · esc back"
 	default:
-		help = "tab fields · ctrl+r raw JSON · ctrl+f model · ctrl+s apply · esc back"
+		help = "tab fields · ctrl+r raw JSON · ctrl+f model · ctrl+l snippets · ctrl+w windows · ctrl+s apply · esc back"
 	}
 	footer := dimStyle.Render(truncate(help, w))
 

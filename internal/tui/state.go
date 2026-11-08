@@ -113,6 +113,23 @@ func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
+	// These open another screen from any tab whose edits are already live.
+	// Raw JSON is the exception: applying it first would discard a parse error.
+	if e.sub != stateSubRaw {
+		switch key {
+		case "ctrl+l":
+			if e.sub == stateSubText {
+				d.setStateText(e.area.Value())
+			}
+			return m.openSnippets(screenState)
+		case "ctrl+w":
+			if e.sub == stateSubText {
+				d.setStateText(e.area.Value())
+			}
+			return m.openWindow()
+		}
+	}
+
 	switch e.sub {
 	case stateSubRaw:
 		switch key {

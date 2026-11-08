@@ -123,9 +123,9 @@ Show an ETA before sending (about 25 ms per question plus a fixed cost on this G
 ### 4.4 State Canvas
 
 - One large textarea for `state[state_key]`, plus a small key/value editor for the other fields. Free text and structured state both supported.
-- Clipboard paste into the state; snippet library for reusable states.
+- Clipboard paste into the state; snippet library for reusable states. *(implemented: `S` opens the library, `ctrl+l` opens it from the canvas; a snippet stores the full state, `state_key` and source preset under `os.UserConfigDir()/playa/snippets`; `enter` replaces the draft's state and key, `s` saves, `d`/`y` deletes, `v` shows the raw JSON. Not implemented: clipboard integration beyond the terminal's own paste.)*
 - **Length guard (mandatory, the server will not warn):** estimate tokens client-side (about 4 chars per token for English, fewer for CJK) per question sequence, including the instructions and criteria. Warn at about 70% of the cap, and show that text beyond the cap is ignored from the end. After a call, flag `input_tokens == n_questions x cap`.
-- Optional **windowed mode** for long documents: split the state into windows, run them as one batch, and show the strongest window.
+- Optional **windowed mode** for long documents: split the state into windows, run them as one batch, and show the strongest window. *(implemented: `ctrl+w` snapshots the draft, splits only the main text into overlapping token-bounded windows, and runs the questions sequentially; `[`/`]` adjust the size, `o` cycles 0/10/25/50% overlap, and the highest mean winner probability is marked strongest. Each window enters run history and feeds the predictor. Not implemented: sending the windows as one chunked batch request; they are independent calls so progress and cancellation stay visible.)*
 
 * **Route preview (no model needed):** `laya detect-lang --text <STR>` prints key: value lines (`script`, `english`, `words`, `english_hits`, `ratio`, `route`, `reason`) without loading a model. Its `reason` matched the server's `route` string for the same sentence (`english words 5/8`). Run it on a debounced pause while the user types, so the canvas can show the likely family and route before any decide call, and show the weak-English warning early. *(implemented: 350 ms debounce, route feeds the length guard while the model is on auto)*
 * **Cost drivers:** the server pads every question in a forward to the longest one (`pad: max-in-batch`), so cost follows questions x the longest sequence, not the sum of tokens. Show the longest sequence in the length meter, and tell the user that one long question slows the whole request.
@@ -214,6 +214,7 @@ Compute display certainty as 1 - H/ln(n) from the probabilities (use \[p, 1-p\] 
 5. Question Forge and the JSON toggle. *(implemented: choice/score/noul forms, raw JSON, live preview, save/load)*
 6. History *(implemented: bounded store, persisted history screen, exact-request replay)*, batch runner (4.6) *(implemented: file input, chunked requests, sortable/filterable table, exports)*, benchmark pane (4.7) *(implemented: cost readout, warm-run stats, two-result comparison, persisted results, rolling latency fit)*, A/B compare (4.8) *(implemented: two concurrent targets, model and URL switching, disagreement view)*.
 7. Process management (spawn) *(implemented: owned `laya serve` child, attach mode, process-group stop, health polling, log tail, warm-all; `laya daemon` and multi-instance spawn remain)*.
+8. Snippet library and windowed mode *(implemented: saved states with their key and preset, load into any draft, raw/delete flow; overlapping token windows run sequentially with a strongest-window marker and history recording)*.
 
 Fixtures were consolidated into `internal/api/testdata/`; the old root
 `fixtures/` directory is gone. Drafts are per preset and runs use the draft,
