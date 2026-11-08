@@ -559,7 +559,7 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.openBench()
 	case "ctrl+e":
 		return m.openStateEditor()
-	case "ctrl+q":
+	case "Q":
 		return m.openForge()
 	case "R":
 		p, ok := m.selected()

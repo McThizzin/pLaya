@@ -53,7 +53,7 @@ imports) if you publish it.
 | `enter` | run the selected preset's edited draft |
 | `esc` | cancel the in-flight request |
 | `ctrl+e` | open the State Canvas |
-| `ctrl+q` | open the Question Forge |
+| `Q` | open the Question Forge (uppercase) |
 | `H` | open run history (uppercase; `h` jumps to harness) |
 | `B` | open the batch runner (uppercase) |
 | `A` | open the A/B compare screen (uppercase) |
@@ -103,7 +103,7 @@ Canvas. The window with the highest mean winner probability is marked
 and feeds the latency predictor. The run uses a snapshot, so later canvas edits
 cannot change it.
 
-### Question Forge (`ctrl+q`)
+### Question Forge (`Q`)
 
 `j`/`k` move, `n` adds a question (pick choice, score or noul), `e`/`enter`
 edits, `d` deletes, and `J`/`K` reorder. `p` shows the exact payload preview,
@@ -115,7 +115,7 @@ preserved; choice and noul options keep the order you type.
 Changes are per-preset drafts. Running a preset (`enter`) uses the draft, not
 the server's published copy, and edited presets show a dirty marker. `R` on
 the browser discards the draft. A server error that names a `questions.<key>`
-param is shown with a hint, and `ctrl+q` jumps to that question.
+param is shown with a hint, and `Q` jumps to that question.
 
 ### Run history (`H`)
 

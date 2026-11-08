@@ -25,7 +25,7 @@ func openForge(t *testing.T, f *fake) Model {
 	t.Helper()
 	m := connected(t, f)
 	m, _ = press(m, "g")
-	next, _ := press(m, "ctrl+q")
+	next, _ := press(m, "Q")
 	m = next
 	if m.mode != screenForge || m.forgeEd == nil {
 		t.Fatalf("forge not open (mode=%v)", m.mode)

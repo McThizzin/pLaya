@@ -113,7 +113,7 @@ Show an ETA before sending (about 25 ms per question plus a fixed cost on this G
 
 - Three form shapes: choice (key plus optional description rows, max 16), score (ordered, reorderable level list, min 2), noul (optional true/false descriptions).
 - Lint: warn when an instruction references a backticked key that is not in the state.
-- Map server errors to fields using `error.param`. *(implemented: the browser shows the param and `ctrl+q` selects the named question)*
+- Map server errors to fields using `error.param`. *(implemented: the browser shows the param and `Q` selects the named question)*
 - Form / raw JSON toggle with a live payload preview.
 - Preserve question order and criteria order (decode with `json.RawMessage`, keep a separate key slice).
 - Save and load question sets as files under the user config directory.

@@ -107,7 +107,7 @@ func TestServerErrorParamMapsToQuestion(t *testing.T) {
 		t.Errorf("detail missing param hint:\n%s", plain(m.View()))
 	}
 
-	m, _ = press(m, "ctrl+q")
+	m, _ = press(m, "Q")
 	if m.mode != screenForge || m.forgeEd == nil {
 		t.Fatal("forge did not open")
 	}

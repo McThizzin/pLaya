@@ -66,7 +66,7 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · ctrl+q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · S snippets · f model · v raw · ctrl+r reload · q quit"
+	helpText := "↑/↓ select · enter run · ctrl+e state · Q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · S snippets · f model · v raw · ctrl+r reload · q quit"
 	if m.running {
 		helpText = "esc cancel · running… · q quit"
 	}

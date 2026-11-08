@@ -103,7 +103,7 @@ func paramHint(param string) string {
 	parts := strings.Split(param, ".")
 	switch {
 	case len(parts) >= 2 && parts[0] == "questions":
-		return fmt.Sprintf("server error at question %q — ctrl+q jumps to it", parts[1])
+		return fmt.Sprintf("server error at question %q — Q jumps to it", parts[1])
 	case len(parts) >= 1 && parts[0] == "state":
 		return "server error at the state — ctrl+e opens the State Canvas"
 	}
