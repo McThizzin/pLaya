@@ -171,7 +171,7 @@ func TestBenchViewFitsTheTerminal(t *testing.T) {
 	m, cmd := press(m, "enter")
 	m = drain(t, m, cmd)
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

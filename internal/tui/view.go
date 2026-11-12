@@ -14,49 +14,80 @@ import (
 
 const listWidth = 24
 
-// View renders the screen: header, preset list | detail, telemetry bar, help.
+// View composes the persistent tab bar, the framed body of the active tab, any
+// toast lines, and the tab's key bar.
 func (m Model) View() string {
-	if m.mode == screenState {
-		return m.viewState()
+	if m.width < minTermWidth || m.height < minTermHeight {
+		return viewTooSmall(m.width, m.height)
 	}
-	if m.mode == screenForge {
-		return m.viewForge()
-	}
-	if m.mode == screenHistory {
-		return m.viewHistory()
-	}
-	if m.mode == screenBatch {
-		return m.viewBatch()
-	}
-	if m.mode == screenBench {
-		return m.viewBench()
-	}
-	if m.mode == screenAB {
-		return m.viewAB()
-	}
-	if m.mode == screenLaunch {
-		return m.viewLaunch()
-	}
-	if m.mode == screenSnippets {
-		return m.viewSnippets()
-	}
-	if m.mode == screenWindow {
-		return m.viewWindow()
+	if m.helpOpen {
+		return m.viewHelp()
 	}
 
+	toasts := m.toastLines(m.width)
+	bodyH := m.bodyH() - len(toasts)
+	if bodyH < 3 {
+		bodyH = 3
+		toasts = nil
+	}
+	frame := boxed(m.viewBody(bodyH), m.width, bodyH, colAccent)
+
+	parts := make([]string, 0, 3+len(toasts))
+	parts = append(parts, m.viewTabBar(), frame)
+	parts = append(parts, toasts...)
+	parts = append(parts, m.viewKeyBar())
+	return strings.Join(parts, "\n")
+}
+
+// viewBody renders the active tab at the inner body size. The chrome owns the
+// header and footer, so tabs must not draw their own.
+func (m Model) viewBody(height int) string {
+	b := m
+	b.width, b.height = m.bodyW(), height
+	switch m.mode {
+	case screenState:
+		return b.viewState()
+	case screenForge:
+		return b.viewForge()
+	case screenHistory:
+		return b.viewHistory()
+	case screenBatch:
+		return b.viewBatch()
+	case screenBench:
+		return b.viewBench()
+	case screenAB:
+		return b.viewAB()
+	case screenLaunch:
+		return b.viewLaunch()
+	case screenSnippets:
+		return b.viewSnippets()
+	case screenWindow:
+		return b.viewWindow()
+	}
+	return b.viewBrowse()
+}
+
+// viewBrowse is the pLaya home tab: preset list | detail, with telemetry kept
+// inside this tab.
+func (m Model) viewBrowse() string {
 	w, h := m.width, m.height
-	if w < 60 {
-		w = 60
-	}
 	rightW := w - listWidth - 2
-	bodyH := h - 3 // header, telemetry bar, help line
-	if bodyH < 6 {
-		bodyH = 6
+
+	var head string
+	switch {
+	case m.notice != "":
+		head = dimStyle.Render(truncate(m.notice, w))
+	case m.status == statusError:
+		head = errStyle.Render(truncate("cannot reach server: "+m.statusMsg, w))
+	}
+	headLines := 0
+	if head != "" {
+		headLines = 1
 	}
 
-	header := titleStyle.Render("playa") + dimStyle.Render("  ·  "+m.client.BaseURL)
-	if m.notice != "" {
-		header += dimStyle.Render("  ·  " + m.notice)
+	bodyH := h - headLines - 1 // telemetry bar
+	if bodyH < 4 {
+		bodyH = 4
 	}
 
 	left := clipLines(lipgloss.NewStyle().Width(listWidth).Render(m.viewList()), bodyH)
@@ -66,12 +97,12 @@ func (m Model) View() string {
 			lipgloss.NewStyle().Width(listWidth).Render(left), "  ", right),
 	)
 
-	helpText := "↑/↓ select · enter run · ctrl+e state · Q questions · H history · B batch · ctrl+b bench · A compare · L launchpad · S snippets · f model · v raw · ctrl+r reload · q quit"
-	if m.running {
-		helpText = "esc cancel · running… · q quit"
+	parts := make([]string, 0, 3)
+	if head != "" {
+		parts = append(parts, head)
 	}
-	help := dimStyle.Render(truncate(helpText, w))
-	return strings.Join([]string{header, body, m.telemetryBar(w), help}, "\n")
+	parts = append(parts, body, m.telemetryBar(w))
+	return strings.Join(parts, "\n")
 }
 
 func (m Model) viewList() string {
@@ -103,7 +134,7 @@ func (m Model) viewDetail(width int) string {
 	p, ok := m.selected()
 	if !ok {
 		if m.status == statusError {
-			return errStyle.Render(m.statusMsg) + "\n\n" + dimStyle.Render("check that `laya serve` is running, then press ctrl+r")
+			return errStyle.Render(m.statusMsg) + "\n\n" + dimStyle.Render("check that `laya serve` is running, then press R to reload")
 		}
 		return dimStyle.Render("waiting for presets…")
 	}

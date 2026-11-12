@@ -27,10 +27,9 @@ func (m Model) viewAB() string {
 	parts := []string{header}
 	parts = append(parts, m.abTargetLines(e, w)...)
 
-	bodyH := max(4, h-len(parts)-1)
+	bodyH := max(4, h-len(parts))
 	body := m.abBody(e, w)
 	parts = append(parts, lipgloss.NewStyle().Height(bodyH).Render(clipLines(body, bodyH)))
-	parts = append(parts, dimStyle.Render(truncate(m.abHelp(e), w)))
 	return strings.Join(parts, "\n")
 }
 
@@ -181,14 +180,4 @@ func (m Model) abDiffText(e *abSession, a, b []lens.Summary, diffs []int, width 
 		out.WriteString(dimStyle.Render(truncate(line, width)) + "\n")
 	}
 	return strings.TrimRight(out.String(), "\n")
-}
-
-func (m Model) abHelp(e *abSession) string {
-	if e.editing {
-		return "enter apply · esc cancel"
-	}
-	if e.running {
-		return "esc cancel · q quit"
-	}
-	return "tab target · m model · u url · r reset url · enter run · esc back · q quit"
 }

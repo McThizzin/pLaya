@@ -95,12 +95,15 @@ type Model struct {
 	loadErr   string // presets failed to load
 	cursor    int
 	model     string // "auto" or a pinned family
-	notice    string // transient footer message
+	notice    string // legacy footer message
 
-	drafts  map[string]*draft
-	mode    screen
-	stateEd *stateEditor
-	forgeEd *forgeEditor
+	drafts     map[string]*draft
+	mode       screen
+	stateEd    *stateEditor
+	forgeEd    *forgeEditor
+	helpOpen   bool
+	helpScroll int
+	toasts     []toast
 
 	history       *history.Store
 	historyPath   string
@@ -126,6 +129,7 @@ type Model struct {
 	windowed *windowSession
 
 	running     bool
+	runTab      int // tab that started the in-flight decide (0 = pLaya, 7 = History)
 	runSeq      int
 	runCancel   context.CancelFunc
 	runErr      string
@@ -242,48 +246,64 @@ func (m Model) selected() (api.Preset, bool) {
 	return m.presets[m.cursor], true
 }
 
+func (m Model) presetByName(name string) (api.Preset, bool) {
+	for _, p := range m.presets {
+		if p.Name == name {
+			return p, true
+		}
+	}
+	return api.Preset{}, false
+}
+
 // Update handles messages.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		if m.mode == screenState && m.stateEd != nil {
-			m.stateEd.resize(m.width, m.height)
-			if m.stateEd.form != nil {
-				model, cmd := m.stateEd.form.Update(msg)
-				m.stateEd.form = model.(*huh.Form)
-				return m, cmd
-			}
+		w, h := m.bodyW(), m.bodyH()
+		// Every workspace is persistent, so keep them all sized for the frame
+		// even while another tab is visible.
+		if m.stateEd != nil {
+			m.stateEd.resize(w, h)
 		}
-		if m.mode == screenForge && m.forgeEd != nil {
-			m.forgeEd.resize(m.width, m.height)
-			if m.forgeEd.form != nil {
-				model, cmd := m.forgeEd.form.Update(msg)
-				m.forgeEd.form = model.(*huh.Form)
-				return m, cmd
-			}
+		if m.forgeEd != nil {
+			m.forgeEd.resize(w, h)
 		}
-		if m.mode == screenBatch && m.batch != nil {
-			m.batch.resize(m.width, m.height)
+		if m.batch != nil {
+			m.batch.resize(w, h)
 		}
-		if m.mode == screenBench && m.bench != nil {
-			m.bench.resize(m.width, m.height)
+		if m.bench != nil {
+			m.bench.resize(w, h)
 		}
-		if m.mode == screenAB && m.ab != nil {
-			m.ab.resize(m.width, m.height)
+		if m.ab != nil {
+			m.ab.resize(w, h)
 		}
-		if m.mode == screenLaunch && m.launch != nil {
-			m.launch.resize(m.width, m.height)
+		if m.launch != nil {
+			m.launch.resize(w, h)
 		}
-		if m.mode == screenSnippets && m.snippets != nil {
-			m.snippets.resize(m.width, m.height)
+		if m.snippets != nil {
+			m.snippets.resize(w, h)
 		}
-		if m.mode == screenWindow && m.windowed != nil {
-			m.windowed.resize(m.width, m.height)
+		if m.windowed != nil {
+			m.windowed.resize(w, h)
+		}
+		if m.mode == screenState && m.stateEd != nil && m.stateEd.form != nil {
+			model, cmd := m.stateEd.form.Update(msg)
+			m.stateEd.form = model.(*huh.Form)
+			return m, cmd
+		}
+		if m.mode == screenForge && m.forgeEd != nil && m.forgeEd.form != nil {
+			model, cmd := m.forgeEd.form.Update(msg)
+			m.forgeEd.form = model.(*huh.Form)
+			return m, cmd
 		}
 		return m, nil
 
 	case tea.KeyMsg:
+		m.pruneToasts(true)
+		if handled, next, cmd := m.handleGlobalKey(msg); handled {
+			return next, cmd
+		}
 		switch m.mode {
 		case screenState:
 			return m.handleStateKey(msg)
@@ -308,13 +328,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case routeTickMsg:
-		if !m.statePreviewActive() || msg.seq != m.routeSeq {
+		if msg.seq != m.routeSeq {
 			return m, nil
 		}
 		return m, m.routeDetectCmd(msg.text, msg.seq)
 
 	case routeMsg:
-		if !m.statePreviewActive() || msg.seq != m.routeSeq {
+		if msg.seq != m.routeSeq {
 			return m, nil
 		}
 		m.routePending = false
@@ -324,11 +344,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.routePreview, m.routeErr = msg.preview, ""
 		return m, nil
-	}
-
-	// Editor widgets need cursor, blink and form messages too.
-	if handled, model, cmd := m.routeEditorMsg(msg); handled {
-		return model, cmd
 	}
 
 	switch msg := msg.(type) {
@@ -447,17 +462,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case windowResultMsg:
 		return m.handleWindowResult(msg)
 	}
-	return m, nil
-}
 
-// statePreviewActive reports whether a route preview still belongs to the
-// visible or hidden State Canvas. A snippet load can queue one while its own
-// screen is on top.
-func (m Model) statePreviewActive() bool {
-	if m.mode == screenState {
-		return true
+	// Editor widgets need cursor, blink and form messages too. This runs after
+	// the application messages so a background result is never swallowed by a
+	// visible editor.
+	if handled, model, cmd := m.routeEditorMsg(msg); handled {
+		return model, cmd
 	}
-	return m.mode == screenSnippets && m.snippets != nil && m.snippets.returnTo == screenState
+	return m, nil
 }
 
 // routeEditorMsg forwards non-key messages to the active editor widget.
@@ -517,8 +529,6 @@ func (m Model) routeEditorMsg(msg tea.Msg) (bool, tea.Model, tea.Cmd) {
 
 func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch k := msg.String(); k {
-	case "ctrl+c", "q":
-		return m, tea.Quit
 	case "up", "k":
 		if m.cursor > 0 {
 			m.cursor--
@@ -533,46 +543,25 @@ func (m Model) handleBrowseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.running, m.runErr, m.runErrParam = true, "", ""
+		m.runTab = 0
 		m.runSeq++
 		ctx, cancel := context.WithCancel(context.Background())
 		m.runCancel = cancel
 		return m, m.decideCmd(ctx, p.Name, m.draftFor(p).request(m.model), m.runSeq, 0)
-	case "esc":
-		if m.cancelRun() {
-			m.notice = "cancelled the in-flight request"
-		}
 	case "v":
 		m.showRaw = !m.showRaw
-	case "f":
-		m.cycleModel()
-	case "H":
-		return m.openHistory()
-	case "B":
-		return m.openBatch()
-	case "A":
-		return m.openAB()
-	case "L":
-		return m.openLaunch()
-	case "S":
-		return m.openSnippets(screenBrowse)
 	case "ctrl+b":
 		return m.openBench()
 	case "ctrl+e":
 		return m.openStateEditor()
-	case "Q":
-		return m.openForge()
-	case "R":
+	case "ctrl+r":
+		// Reset this draft to the server preset; R reloads presets + health.
 		p, ok := m.selected()
 		if ok {
 			m.drafts[p.Name] = newDraft(p)
 			m.invalidate(p.Name)
 			m.notice = "reset " + p.Name + " to the server preset"
 		}
-	case "ctrl+r":
-		m.cancelRun()
-		m.status, m.statusMsg, m.loadErr = statusConnecting, "", ""
-		m.notice = ""
-		return m, tea.Batch(m.healthCmd(), m.presetsCmd())
 	default:
 		if name, ok := shortcuts[k]; ok {
 			for i, p := range m.presets {

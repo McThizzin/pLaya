@@ -39,7 +39,7 @@ func (m Model) viewBench() string {
 		len(e.questions), e.tokens, forwards, e.warmup, e.runs)
 	parts = append(parts, dimStyle.Render(truncate(config, w)))
 
-	bodyH := max(4, h-len(parts)-1)
+	bodyH := max(4, h-len(parts))
 	var body string
 	if e.running {
 		body = m.viewBenchRunning(e, w)
@@ -47,7 +47,6 @@ func (m Model) viewBench() string {
 		body = m.viewBenchResults(e, w)
 	}
 	parts = append(parts, lipgloss.NewStyle().Height(bodyH).Render(clipLines(body, bodyH)))
-	parts = append(parts, dimStyle.Render(truncate(m.benchHelp(e), w)))
 	return strings.Join(parts, "\n")
 }
 
@@ -138,11 +137,4 @@ func benchPanel(r bench.Result, w int, latest bool) string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(colAccent).
 		Render(strings.Join(content, "\n"))
-}
-
-func (m Model) benchHelp(e *benchSession) string {
-	if e.running {
-		return "esc cancel · q quit"
-	}
-	return "enter run · f family · [ ] runs · w warmup · esc back · q quit"
 }

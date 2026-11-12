@@ -105,6 +105,36 @@ func (e *windowSession) rebuild() {
 		len(e.windows), e.size, int(e.overlapPct*100))
 }
 
+// resplit replaces the snapshot with the current draft and splits again.
+func (e *windowSession) resplit(d *draft) {
+	e.preset = d.preset
+	e.stateKey = d.stateKey
+	e.state = cloneState(d.state)
+	e.text = d.stateText()
+	e.questions = forge.Clone(d.questions)
+	e.rebuild()
+}
+
+func (e *windowSession) cycleModel(h *api.Health) {
+	choices := []string{""}
+	if h != nil {
+		for _, f := range h.Families {
+			if f != "" {
+				choices = append(choices, f)
+			}
+		}
+	}
+	idx := 0
+	for i, c := range choices {
+		if c == e.model {
+			idx = i
+			break
+		}
+	}
+	e.model = choices[(idx+1)%len(choices)]
+	e.status = "model " + familyLabel(e.model)
+}
+
 func (m Model) openWindow() (tea.Model, tea.Cmd) {
 	d := m.currentDraft()
 	if d == nil {
@@ -120,7 +150,7 @@ func (m Model) openWindow() (tea.Model, tea.Cmd) {
 	if m.stateEd != nil {
 		m.stateEd.err = ""
 	}
-	m.windowed = newWindowSession(d, m.model, m.width, m.height)
+	m.windowed = newWindowSession(d, m.model, m.bodyW(), m.bodyH())
 	m.mode = screenWindow
 	return m, nil
 }
@@ -191,7 +221,7 @@ func (m *Model) cancelWindow() bool {
 
 func (m Model) handleWindowResult(msg windowResultMsg) (tea.Model, tea.Cmd) {
 	e := m.windowed
-	if e == nil || m.mode != screenWindow || msg.seq != e.seq {
+	if e == nil || msg.seq != e.seq {
 		return m, nil // cancelled or superseded
 	}
 	if msg.index < 0 || msg.index >= len(e.results) {
@@ -302,13 +332,6 @@ func (m Model) handleWindowKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch msg.String() {
-	case "ctrl+c", "q":
-		return m, tea.Quit
-	case "esc":
-		if m.cancelWindow() {
-			return m, nil
-		}
-		m.mode = screenState
 	case "enter":
 		if !e.running {
 			return m, m.startWindow()

@@ -24,7 +24,7 @@ func TestSnippetsSaveListAndDelete(t *testing.T) {
 	d.state[d.stateKey] = "a saved prompt about a refund"
 	d.state["ticket"] = "T-42"
 
-	m, _ = press(m, "S")
+	m, _ = press(m, "alt+6")
 	if m.mode != screenSnippets || m.snippets == nil {
 		t.Fatalf("S should open the snippet library (mode=%v)", m.mode)
 	}
@@ -132,9 +132,15 @@ func TestSnippetLoadFromStateReplacesStateAndKey(t *testing.T) {
 		t.Errorf("request state = %#v", req.State)
 	}
 
+	// The tab shell's layered esc returns home; the loaded draft is still in
+	// the State tab.
 	m, _ = press(m, "esc")
+	if m.mode != screenBrowse {
+		t.Errorf("esc should return to the pLaya home tab, mode=%v", m.mode)
+	}
+	m, _ = press(m, "alt+1")
 	if m.mode != screenState {
-		t.Errorf("esc should return to the State Canvas, mode=%v", m.mode)
+		t.Errorf("alt+1 should open the State Canvas, mode=%v", m.mode)
 	}
 	out := plain(m.View())
 	if !strings.Contains(out, "loaded body text") {
@@ -169,12 +175,12 @@ func TestSnippetPromptCancelAndViewFits(t *testing.T) {
 	snippetHome(t)
 	f := newFake(t)
 	m := connected(t, f)
-	m, _ = press(m, "S")
+	m, _ = press(m, "alt+6")
 	m, _ = press(m, "s")
 
 	// Long values exercise truncation in the prompt and detail panes.
 	m.snippets.input.SetValue(strings.Repeat("long-name ", 20))
-	for _, size := range []struct{ w, h int }{{80, 24}, {60, 12}, {50, 8}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

@@ -136,6 +136,11 @@ func key(s string) tea.KeyMsg {
 		return tea.KeyMsg{Type: tea.KeyCtrlS}
 	case "ctrl+w":
 		return tea.KeyMsg{Type: tea.KeyCtrlW}
+	case "ctrl+h":
+		return tea.KeyMsg{Type: tea.KeyCtrlH}
+	}
+	if strings.HasPrefix(s, "alt+") {
+		return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s[len("alt+"):]), Alt: true}
 	}
 	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
 }
@@ -200,7 +205,7 @@ func TestConnectFlow(t *testing.T) {
 		t.Errorf("presets=%d health=%+v", len(m.presets), m.health)
 	}
 	out := plain(m.View())
-	for _, want := range []string{"playa", "Presets", "[g] guard", "[x] expense", "Inbound email triage", "ready", "vulkan:0"} {
+	for _, want := range []string{"pLaya", "Presets", "[g] guard", "[x] expense", "Inbound email triage", "ready", "vulkan:0"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("view missing %q:\n%s", want, out)
 		}
@@ -322,7 +327,7 @@ func TestSecondRunProducesMedian(t *testing.T) {
 		m, cmd = press(m, "enter")
 		m = step(t, m, cmd)
 	}
-	if !strings.Contains(plain(m.View()), "preset p50 270ms (n=2)") {
+	if !strings.Contains(plain(m.View()), "preset p50 270ms") {
 		t.Errorf("telemetry bar missing median:\n%s", plain(m.View()))
 	}
 }
@@ -406,7 +411,7 @@ func TestViewFitsTheTerminal(t *testing.T) {
 	m = step(t, m, cmd)
 	m, _ = press(m, "v") // raw JSON is the longest content
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		lines := strings.Split(out, "\n")
@@ -416,11 +421,21 @@ func TestViewFitsTheTerminal(t *testing.T) {
 	}
 }
 
+func TestTooSmallTerminalShowsHint(t *testing.T) {
+	m := connected(t, newFake(t))
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	out := plain(next.(Model).View())
+	for _, want := range []string{"terminal too small", "100x30", "80x24"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("small view missing %q:\n%s", want, out)
+		}
+	}
+}
+
 func TestReloadResetsStatus(t *testing.T) {
 	m := connected(t, newFake(t))
-	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyCtrlR})
-	m = next.(Model)
-	if m.status != statusConnecting || cmd == nil {
-		t.Errorf("status = %v, cmd nil = %v", m.status, cmd == nil)
+	next, cmd := press(m, "R")
+	if m.status != statusReady || next.status != statusConnecting || cmd == nil {
+		t.Errorf("status = %v -> %v, cmd nil = %v", m.status, next.status, cmd == nil)
 	}
 }

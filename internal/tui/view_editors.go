@@ -6,17 +6,25 @@ import (
 )
 
 func (m Model) viewState() string {
-	w, h := m.width, m.height
-	if w < 60 {
-		w = 60
-	}
+	h := m.height
 	e, d := m.stateEd, m.currentDraft()
 	if e == nil || d == nil {
 		return "state editor unavailable"
 	}
 
+	focus := "editing"
+	if e.form != nil {
+		focus = "form"
+	} else if e.sub == stateSubRaw {
+		focus = "raw JSON"
+	} else if e.sub == stateSubFields {
+		focus = "fields"
+	} else if !e.focused {
+		focus = "paused · enter to edit"
+	}
 	header := titleStyle.Render("State Canvas") +
-		dimStyle.Render(fmt.Sprintf("  ·  %s  ·  %s  ·  model %s", d.preset, d.stateKey, m.modelLabel()))
+		dimStyle.Render(fmt.Sprintf("  ·  %s  ·  %s  ·  model %s  ·  %s",
+			d.preset, d.stateKey, m.modelLabel(), focus))
 	meter := m.lengthMeter(d)
 	prefix := header + "\n" + meter
 	if line := m.routeLine(); line != "" {
@@ -30,7 +38,7 @@ func (m Model) viewState() string {
 		info = dimStyle.Render(e.status)
 	}
 
-	bodyH := h - countLines(prefix) - countLines(info) - 2
+	bodyH := h - countLines(prefix) - countLines(info)
 	if bodyH < 3 {
 		bodyH = 3
 	}
@@ -49,24 +57,11 @@ func (m Model) viewState() string {
 		}
 	}
 
-	help := "esc back · ctrl+s apply"
-	switch {
-	case e.form != nil:
-		help = "enter next · shift+tab back · esc cancel"
-	case e.sub == stateSubRaw:
-		help = "ctrl+s parse and apply · esc cancel"
-	case e.sub == stateSubFields:
-		help = "j/k move · a add · e edit · d delete · tab text · ctrl+r raw · ctrl+l snippets · ctrl+w windows · esc back"
-	default:
-		help = "tab fields · ctrl+r raw JSON · ctrl+f model · ctrl+l snippets · ctrl+w windows · ctrl+s apply · esc back"
-	}
-	footer := dimStyle.Render(truncate(help, w))
-
 	body = clipLines(body, bodyH)
 	if info != "" {
-		return strings.Join([]string{prefix, body, info, footer}, "\n")
+		return strings.Join([]string{prefix, body, info}, "\n")
 	}
-	return strings.Join([]string{prefix, body, footer}, "\n")
+	return strings.Join([]string{prefix, body}, "\n")
 }
 
 func (e *stateEditor) viewFields(d *draft, maxLines int) string {
@@ -92,10 +87,7 @@ func (e *stateEditor) viewFields(d *draft, maxLines int) string {
 }
 
 func (m Model) viewForge() string {
-	w, h := m.width, m.height
-	if w < 60 {
-		w = 60
-	}
+	h := m.height
 	e, d := m.forgeEd, m.currentDraft()
 	if e == nil || d == nil {
 		return "question forge unavailable"
@@ -111,7 +103,7 @@ func (m Model) viewForge() string {
 		info = dimStyle.Render(e.status)
 	}
 
-	bodyH := h - countLines(header) - countLines(info) - 2
+	bodyH := h - countLines(header) - countLines(info)
 	if bodyH < 3 {
 		bodyH = 3
 	}
@@ -130,24 +122,11 @@ func (m Model) viewForge() string {
 		}
 	}
 
-	help := "j/k move · n new · e edit · d delete · J/K reorder · p preview · r raw · ctrl+s save · ctrl+o load · esc back"
-	switch {
-	case e.form != nil && e.formKind == forgeFormQuestion:
-		help = "enter next · ctrl+j newline in instructions · shift+tab back · esc cancel"
-	case e.form != nil:
-		help = "enter next · shift+tab back · esc cancel"
-	case e.sub == forgeSubRaw:
-		help = "ctrl+s parse and apply · esc cancel"
-	case e.sub == forgeSubPreview:
-		help = "↑/↓ pgup/pgdn scroll · p or esc back"
-	}
-	footer := dimStyle.Render(truncate(help, w))
-
 	body = clipLines(body, bodyH)
 	if info != "" {
-		return strings.Join([]string{header, body, info, footer}, "\n")
+		return strings.Join([]string{header, body, info}, "\n")
 	}
-	return strings.Join([]string{header, body, footer}, "\n")
+	return strings.Join([]string{header, body}, "\n")
 }
 
 func (e *forgeEditor) viewQuestions(d *draft, maxLines int) string {

@@ -22,6 +22,14 @@ var (
 			Background(lipgloss.Color("236")).
 			Foreground(lipgloss.Color("252")).
 			Padding(0, 1)
+
+	tabActiveStyle   = lipgloss.NewStyle().Bold(true).Foreground(colAccent)
+	tabInactiveStyle = lipgloss.NewStyle().Foreground(colDim)
+	toastStyle       = lipgloss.NewStyle().
+				Background(lipgloss.Color("236")).
+				Foreground(lipgloss.Color("252")).
+				Padding(0, 1)
+	toastErrStyle = toastStyle.Foreground(colRed)
 )
 
 // probColor colors by the probability of the winning class, not by the

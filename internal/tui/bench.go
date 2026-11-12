@@ -106,7 +106,7 @@ func (m Model) openBench() (tea.Model, tea.Cmd) {
 	if m.client != nil {
 		server = m.client.BaseURL
 	}
-	m.bench = newBenchSession(d, m.model, device, server, saved, m.width, m.height)
+	m.bench = newBenchSession(d, m.model, device, server, saved, m.bodyW(), m.bodyH())
 	m.mode = screenBench
 	return m, nil
 }
@@ -285,20 +285,9 @@ func (m Model) handleBenchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	switch msg.String() {
-	case "ctrl+c", "q":
-		return m, tea.Quit
-	case "esc":
-		if m.cancelBench() {
-			return m, nil
-		}
-		m.mode = screenBrowse
 	case "enter":
 		if !e.running {
 			return m, m.startBench()
-		}
-	case "f":
-		if !e.running {
-			e.cycleModel(m.health)
 		}
 	case "[":
 		if !e.running && e.runs > benchMinRuns {
@@ -314,6 +303,13 @@ func (m Model) handleBenchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// reloadSaved replaces the panel list with what is currently on disk.
+func (e *benchSession) reloadSaved(store *bench.Store) {
+	if store != nil {
+		e.results = store.List()
+	}
 }
 
 func (e *benchSession) cycleModel(h *api.Health) {

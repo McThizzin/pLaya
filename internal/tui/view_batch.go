@@ -45,22 +45,19 @@ func (m Model) viewBatch() string {
 
 	switch {
 	case e.prompt:
-		bodyH := max(2, h-len(parts)-1)
+		bodyH := max(2, h-len(parts))
 		body := "Open a file of states.\n\n" +
 			"JSONL: one string or object per line, or CSV: one column per state field.\n\n" +
 			e.input.View()
 		parts = append(parts, clipLines(body, bodyH))
-		parts = append(parts, dimStyle.Render(truncate("enter load · esc cancel", w)))
 	case e.detail:
-		bodyH := max(2, h-len(parts)-1)
+		bodyH := max(2, h-len(parts))
 		parts = append(parts, clipLines(m.viewBatchDetail(e, w), bodyH))
-		parts = append(parts, dimStyle.Render(truncate("esc back · v raw · q quit", w)))
 	default:
-		bodyH := max(3, h-len(parts)-2)
+		bodyH := max(3, h-len(parts)-1)
 		body := clipLines(m.viewBatchTable(e, w, bodyH), bodyH)
 		parts = append(parts, lipgloss.NewStyle().Height(bodyH).Render(body))
 		parts = append(parts, m.batchSummaryLine(e, w))
-		parts = append(parts, dimStyle.Render(truncate(m.batchHelp(e), w)))
 	}
 	return strings.Join(parts, "\n")
 }
@@ -191,16 +188,6 @@ func (m Model) batchSummaryLine(e *batchSession, w int) string {
 		parts = append(parts, fmt.Sprintf("%d truncated", s.Truncated))
 	}
 	return dimStyle.Render(truncate(strings.Join(parts, " │ "), w))
-}
-
-func (m Model) batchHelp(e *batchSession) string {
-	if e.running {
-		return "esc cancel · running… · q quit"
-	}
-	if len(e.rows) == 0 {
-		return "ctrl+o open file · esc back · q quit"
-	}
-	return "j/k rows · h/l columns · enter detail · r run/resume · R rerun · f filter · s sort · S dir · t threshold · ctrl+o open · x export · esc back · q quit"
 }
 
 func (m Model) viewBatchDetail(e *batchSession, w int) string {

@@ -74,8 +74,8 @@ func TestCancelInFlightRequest(t *testing.T) {
 	if m.running {
 		t.Fatal("esc should clear running")
 	}
-	if !strings.Contains(m.notice, "cancelled") {
-		t.Errorf("notice = %q", m.notice)
+	if len(m.toasts) == 0 || !strings.Contains(m.toasts[len(m.toasts)-1].text, "cancelled") {
+		t.Errorf("toasts = %+v, want a cancellation message", m.toasts)
 	}
 
 	// The command may already have a response; its stale sequence must not
@@ -107,7 +107,7 @@ func TestServerErrorParamMapsToQuestion(t *testing.T) {
 		t.Errorf("detail missing param hint:\n%s", plain(m.View()))
 	}
 
-	m, _ = press(m, "Q")
+	m, _ = press(m, "alt+2")
 	if m.mode != screenForge || m.forgeEd == nil {
 		t.Fatal("forge did not open")
 	}

@@ -92,7 +92,7 @@ func TestWindowedRunSequentialAndParams(t *testing.T) {
 		t.Errorf("raw view missing the response:\n%s", out)
 	}
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}, {50, 8}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}, {110, 32}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		text := plain(next.(Model).View())
 		if lines := strings.Split(text, "\n"); len(lines) > size.h {

@@ -61,7 +61,7 @@ func TestLaunchStartStopAndAttach(t *testing.T) {
 	external := newFake(t)
 	m := connected(t, f)
 
-	m, _ = press(m, "L")
+	m, _ = press(m, "alt+8")
 	if m.mode != screenLaunch || m.launch == nil {
 		t.Fatal("L should open the Launchpad")
 	}
@@ -147,7 +147,7 @@ func TestLaunchWarmAllFamilies(t *testing.T) {
 	f := newFake(t)
 	m := connected(t, f)
 	before := f.decideCount()
-	m, _ = press(m, "L")
+	m, _ = press(m, "alt+8")
 	m, cmd := press(m, "w")
 	m = launchStep(t, m, cmd)
 
@@ -167,7 +167,7 @@ func TestLaunchWarmAllFamilies(t *testing.T) {
 func TestLaunchRejectsBadConfigAndCancelLeaves(t *testing.T) {
 	f := newFake(t)
 	m := connected(t, f)
-	m, _ = press(m, "L")
+	m, _ = press(m, "alt+8")
 
 	m.launch.fields[launchModels] = ""
 	m, cmd := press(m, "s")
@@ -194,11 +194,14 @@ func TestLaunchRejectsBadConfigAndCancelLeaves(t *testing.T) {
 	if cmd == nil || m.launcher == nil {
 		t.Fatal("a valid config should start")
 	}
-	// Leaving before the start message arrives cancels the UI flow but keeps
-	// the process owned by the manager.
+	// Esc while waiting cancels the UI flow but keeps the process owned by
+	// the manager. The Server tab stays visible.
 	m, _ = press(m, "esc")
-	if m.mode != screenBrowse || m.launch.starting {
+	if m.mode != screenLaunch || m.launch.starting {
 		t.Fatalf("esc mode=%v starting=%v", m.mode, m.launch.starting)
+	}
+	if !strings.Contains(m.launch.status, "wait cancelled") {
+		t.Errorf("esc status = %q", m.launch.status)
 	}
 	m = launchStep(t, m, cmd)
 	seq := m.launch.seq
@@ -223,7 +226,7 @@ func TestLaunchStopBeforeStartRunsAndHealthTimeout(t *testing.T) {
 
 	// x before the start command executes must close the manager instead of
 	// letting the pending Start spawn an orphan.
-	m, _ = press(m, "L")
+	m, _ = press(m, "alt+8")
 	m.launch.fields[launchBinary] = fakeLaya(t)
 	m.launch.fields[launchModels] = t.TempDir()
 	m.launch.fields[launchPort] = strconv.Itoa(portFromURL(f.URL))
@@ -269,13 +272,13 @@ func TestLaunchStopBeforeStartRunsAndHealthTimeout(t *testing.T) {
 func TestLaunchViewFitsTheTerminal(t *testing.T) {
 	f := newFake(t)
 	m := connected(t, f)
-	m, _ = press(m, "L")
+	m, _ = press(m, "alt+8")
 	m.launch.status = strings.Repeat("a long status ", 12)
 	m.launch.editing = true
 	m.launch.selected = int(launchModels)
 	m.launch.input.SetValue(strings.Repeat("m", 200))
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}, {50, 8}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}, {110, 32}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

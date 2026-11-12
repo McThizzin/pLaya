@@ -39,7 +39,7 @@ func (m Model) viewSnippets() string {
 		parts = append(parts, errStyle.Render(truncate(oneLine(e.err), w)))
 	}
 
-	bodyH := h - len(parts) - 1 // footer
+	bodyH := h - len(parts)
 	if bodyH < 4 {
 		bodyH = 4
 	}
@@ -58,7 +58,6 @@ func (m Model) viewSnippets() string {
 		body = clipLines(body, bodyH)
 	}
 	parts = append(parts, body)
-	parts = append(parts, dimStyle.Render(truncate(m.snippetHelp(e), w)))
 
 	out := strings.Join(parts, "\n")
 	if h > 0 {
@@ -120,20 +119,6 @@ func (e *snippetSession) viewDetail(width int) string {
 		}
 	}
 	return b.String()
-}
-
-func (m Model) snippetHelp(e *snippetSession) string {
-	switch {
-	case e.prompt:
-		return "enter save · esc cancel"
-	case e.pendingDelete != "":
-		return "y confirm delete · esc cancel"
-	case len(e.names) == 0:
-		return "s save current state · esc back · ctrl+c quit"
-	case e.raw:
-		return "j/k move · v preview · enter load · s save · d delete · esc back"
-	}
-	return "j/k move · enter load · s save · d delete · v raw · ctrl+r refresh · esc back"
 }
 
 func labelOr(s, fallback string) string {

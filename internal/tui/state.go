@@ -35,6 +35,8 @@ type stateEditor struct {
 	valVal  string
 	err     string
 	status  string
+	preset  string // draft this editor was built for
+	focused bool   // text focus; esc pauses it before leaving the tab
 	width   int
 	height  int
 }
@@ -51,10 +53,37 @@ func newStateEditor(d *draft, width, height int) *stateEditor {
 	raw.Prompt = ""
 	raw.CharLimit = 0
 
-	e := &stateEditor{area: area, raw: raw}
+	e := &stateEditor{area: area, raw: raw, preset: d.preset, focused: true}
 	e.resize(width, height)
 	e.area.Focus()
 	return e
+}
+
+// focus toggles the text focus without changing which sub-tab is shown.
+func (e *stateEditor) focus(on bool) {
+	e.focused = on
+	if on {
+		if e.sub == stateSubRaw {
+			e.raw.Focus()
+		} else {
+			e.area.Focus()
+		}
+		return
+	}
+	e.area.Blur()
+	e.raw.Blur()
+}
+
+// sync reloads the editor after the draft was replaced or reverted.
+func (e *stateEditor) sync(d *draft) {
+	e.preset = d.preset
+	e.area.SetValue(d.stateText())
+	e.area.CursorEnd()
+	e.sub = stateSubText
+	e.cursor = 0
+	e.err = ""
+	e.form = nil
+	e.focus(true)
 }
 
 func (e *stateEditor) resize(width, height int) {
@@ -82,7 +111,7 @@ func (m Model) openStateEditor() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	d := m.draftFor(p)
-	m.stateEd = newStateEditor(d, m.width, m.height)
+	m.stateEd = newStateEditor(d, m.bodyW(), m.bodyH())
 	m.mode = screenState
 	m, routeCmd := m.queueRoute(d, d.stateText())
 	return m, tea.Batch(textarea.Blink, routeCmd)
@@ -203,6 +232,11 @@ func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.invalidate(d.preset)
 		m.mode = screenBrowse
 		return m, nil
+	case "enter":
+		if !e.focused {
+			e.focus(true)
+			return m, nil
+		}
 	case "tab":
 		d.setStateText(e.area.Value())
 		m.invalidate(d.preset)
@@ -217,6 +251,10 @@ func (m Model) handleStateKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+f":
 		m.cycleModel()
 		return m, nil
+	}
+
+	if !e.focused {
+		e.focus(true)
 	}
 
 	before := e.area.Value()
@@ -240,9 +278,10 @@ func (e *stateEditor) enterRaw(d *draft) {
 		return
 	}
 	e.raw.SetValue(string(b))
-	e.raw.Focus()
 	e.cursor = 0
 	e.sub = stateSubRaw
+	e.focused = true
+	e.raw.Focus()
 	e.err = ""
 }
 
@@ -262,6 +301,7 @@ func (e *stateEditor) applyRaw(d *draft) error {
 	d.dirty = true
 	e.area.SetValue(d.stateText())
 	e.sub = stateSubText
+	e.focused = true
 	e.area.Focus()
 	return nil
 }

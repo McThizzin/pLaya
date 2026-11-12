@@ -143,7 +143,7 @@ func (m Model) openLaunch() (tea.Model, tea.Cmd) {
 		if m.client != nil {
 			current = m.client.BaseURL
 		}
-		m.launch = newLaunchSession(m.opts, current, m.width, m.height)
+		m.launch = newLaunchSession(m.opts, current, m.bodyW(), m.bodyH())
 	}
 	m.mode = screenLaunch
 	if m.launcher != nil && m.launcher.Running() {
@@ -451,7 +451,7 @@ func (m Model) handleLaunchWarm(msg launchWarmMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleLaunchLog(msg launchLogMsg) (tea.Model, tea.Cmd) {
 	e := m.launch
-	if e == nil || msg.seq != e.logSeq || m.mode != screenLaunch {
+	if e == nil || msg.seq != e.logSeq {
 		return m, nil
 	}
 	if m.launcher == nil || !m.launcher.Running() {
@@ -488,21 +488,6 @@ func (m Model) handleLaunchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch key {
-	case "ctrl+c", "q":
-		return m, tea.Quit
-	case "esc":
-		wasStarting := e.starting
-		e.seq++
-		e.starting = false
-		e.logSeq++
-		if wasStarting {
-			if m.launcher != nil && m.launcher.Running() {
-				e.status = "wait cancelled; the child keeps running (a attach · x stop)"
-			} else {
-				e.status = "start wait cancelled"
-			}
-		}
-		m.mode = screenBrowse
 	case "up", "k":
 		if e.selected > 0 {
 			e.selected--

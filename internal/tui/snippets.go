@@ -73,7 +73,7 @@ func (m Model) openSnippets(returnTo screen) (tea.Model, tea.Cmd) {
 			d.setStateText(m.stateEd.area.Value())
 		}
 	}
-	m.snippets = newSnippetSession(returnTo, m.width, m.height)
+	m.snippets = newSnippetSession(returnTo, m.bodyW(), m.bodyH())
 	m.mode = screenSnippets
 	return m, nil
 }
@@ -92,9 +92,6 @@ func (m Model) handleSnippetKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	key := msg.String()
-	if key == "ctrl+c" {
-		return m, tea.Quit
-	}
 
 	if e.prompt {
 		switch key {
@@ -155,16 +152,6 @@ func (m Model) handleSnippetKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch key {
-	case "q":
-		return m, tea.Quit
-	case "esc":
-		if e.returnTo == screenState && (m.stateEd == nil || m.currentDraft() == nil) {
-			m.mode = screenBrowse
-		} else {
-			m.mode = e.returnTo
-		}
-		e.status = ""
-		return m, nil
 	case "up", "k":
 		if e.cursor > 0 {
 			e.cursor--
@@ -228,9 +215,6 @@ func (m Model) handleSnippetKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(e.names) > 0 {
 			e.raw = !e.raw
 		}
-	case "ctrl+r":
-		e.reload("")
-		e.status = fmt.Sprintf("%d saved snippets", len(e.names))
 	}
 	return m, nil
 }
@@ -246,6 +230,7 @@ func (m *Model) refreshStateEditor(d *draft) {
 	m.stateEd.sub = stateSubText
 	m.stateEd.cursor = 0
 	m.stateEd.err = ""
+	m.stateEd.focused = true
 	m.stateEd.area.Focus()
 	if m.stateEd.form != nil {
 		m.stateEd.form = nil

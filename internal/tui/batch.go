@@ -83,13 +83,33 @@ func (e *batchSession) resize(width, height int) {
 	e.input.Width = max(20, width-8)
 }
 
+func (e *batchSession) cycleModel(h *api.Health) {
+	choices := []string{""}
+	if h != nil {
+		for _, f := range h.Families {
+			if f != "" {
+				choices = append(choices, f)
+			}
+		}
+	}
+	idx := 0
+	for i, c := range choices {
+		if c == e.model {
+			idx = i
+			break
+		}
+	}
+	e.model = choices[(idx+1)%len(choices)]
+	e.status = "model " + familyLabel(e.model)
+}
+
 func (m Model) openBatch() (tea.Model, tea.Cmd) {
 	d := m.currentDraft()
 	if d == nil || len(d.questions) == 0 {
 		m.notice = "batch needs a preset with questions"
 		return m, nil
 	}
-	m.batch = newBatchSession(d, m.model, m.width, m.height)
+	m.batch = newBatchSession(d, m.model, m.bodyW(), m.bodyH())
 	m.mode = screenBatch
 	return m, nil
 }
@@ -222,7 +242,7 @@ func (m *Model) cancelBatch() bool {
 }
 
 func (m Model) handleBatchLoad(msg batchLoadMsg) (tea.Model, tea.Cmd) {
-	if m.mode != screenBatch || m.batch == nil {
+	if m.batch == nil {
 		return m, nil
 	}
 	e := m.batch
@@ -317,8 +337,6 @@ func (m Model) handleBatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if e.detail {
 		switch key {
-		case "ctrl+c", "q":
-			return m, tea.Quit
 		case "esc":
 			e.detail = false
 		case "v":
@@ -329,13 +347,6 @@ func (m Model) handleBatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	order := m.batchOrder()
 	switch key {
-	case "ctrl+c", "q":
-		return m, tea.Quit
-	case "esc":
-		if m.cancelBatch() {
-			return m, nil
-		}
-		m.mode = screenBrowse
 	case "up", "k":
 		if e.cursor > 0 {
 			e.cursor--
@@ -364,9 +375,7 @@ func (m Model) handleBatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "r":
 		return m, m.startBatch(false)
-	case "R":
-		return m, m.startBatch(true)
-	case "f":
+	case "F":
 		e.filter = e.filter.Next()
 		e.cursor = 0
 	case "s":

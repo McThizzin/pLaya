@@ -34,7 +34,7 @@ func TestHistoryRecordsRunAndRaw(t *testing.T) {
 		t.Errorf("stored response incomplete: raw=%d family=%q", len(e.Raw), e.Response.Family)
 	}
 
-	m, _ = press(m, "H")
+	m, _ = press(m, "alt+7")
 	if m.mode != screenHistory {
 		t.Fatal("H should open history")
 	}
@@ -67,7 +67,7 @@ func TestHistoryReplayUsesStoredRequest(t *testing.T) {
 
 	// Edit the draft after the run. Replay must still send the stored request.
 	m.currentDraft().setStateText("a completely different state")
-	m, _ = press(m, "H")
+	m, _ = press(m, "alt+7")
 	m, cmd = press(m, "enter")
 	if !m.running {
 		t.Fatal("replay should start a run")
@@ -112,7 +112,7 @@ func TestHistoryRecordsErrors(t *testing.T) {
 	if e.Err == "" || e.Param != "questions.urgency.criteria" || e.Response != nil {
 		t.Errorf("error entry = %+v", e)
 	}
-	m, _ = press(m, "H")
+	m, _ = press(m, "alt+7")
 	out := plain(m.View())
 	if !strings.Contains(out, "bad criteria") || !strings.Contains(out, `question "urgency"`) {
 		t.Errorf("history error detail missing:\n%s", out)
@@ -137,7 +137,7 @@ func TestHistoryPersistsAcrossModels(t *testing.T) {
 	if reloaded.history.Len() != 1 {
 		t.Fatalf("reloaded history len = %d", reloaded.history.Len())
 	}
-	reloaded, _ = press(reloaded, "H")
+	reloaded, _ = press(reloaded, "alt+7")
 	if out := plain(reloaded.View()); !strings.Contains(out, "#1") || !strings.Contains(out, "guard") {
 		t.Errorf("persisted run missing:\n%s", out)
 	}
@@ -150,9 +150,9 @@ func TestHistoryViewFitsTheTerminal(t *testing.T) {
 	var cmd tea.Cmd
 	m, cmd = press(m, "enter")
 	m = step(t, m, cmd)
-	m, _ = press(m, "H")
+	m, _ = press(m, "alt+7")
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

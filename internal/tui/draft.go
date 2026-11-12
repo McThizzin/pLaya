@@ -82,6 +82,35 @@ func (d *draft) deleteField(key string) {
 	d.dirty = true
 }
 
+// revertState restores the state half from the server preset while keeping
+// local question edits. The dirty flag still reflects the other half.
+func (d *draft) revertState(p api.Preset) {
+	d.state = cloneState(p.State)
+	d.stateKey = p.StateKey
+	d.dirty = !d.matches(p)
+}
+
+// revertQuestions restores the questions half from the server preset while
+// keeping local state edits.
+func (d *draft) revertQuestions(p api.Preset) {
+	d.questions = forge.Clone(p.Questions)
+	d.dirty = !d.matches(p)
+}
+
+func (d *draft) matches(p api.Preset) bool {
+	if d.stateKey != p.StateKey {
+		return false
+	}
+	a, errA := json.Marshal(d.state)
+	b, errB := json.Marshal(p.State)
+	if errA != nil || errB != nil || string(a) != string(b) {
+		return false
+	}
+	aq, errAQ := json.Marshal(d.questions)
+	bq, errBQ := json.Marshal(p.Questions)
+	return errAQ == nil && errBQ == nil && string(aq) == string(bq)
+}
+
 func (d *draft) request(model string) api.DecideRequest {
 	req := api.DecideRequest{State: cloneState(d.state), Questions: forge.Clone(d.questions)}
 	if model != "" && model != "auto" {

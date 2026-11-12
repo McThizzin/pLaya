@@ -54,6 +54,7 @@ type forgeEditor struct {
 	raw     textarea.Model
 	err     string
 	status  string
+	preset  string // draft this editor was built for
 	width   int
 	height  int
 }
@@ -64,7 +65,7 @@ func newForgeEditor(d *draft, width, height int) *forgeEditor {
 	raw.Prompt = ""
 	raw.CharLimit = 0
 
-	e := &forgeEditor{raw: raw, preview: viewport.New(80, 20)}
+	e := &forgeEditor{raw: raw, preview: viewport.New(80, 20), preset: d.preset}
 	e.resize(width, height)
 	if len(d.questions) > 0 {
 		e.cursor = 0
@@ -96,7 +97,7 @@ func (m Model) openForge() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	d := m.draftFor(p)
-	m.forgeEd = newForgeEditor(d, m.width, m.height)
+	m.forgeEd = newForgeEditor(d, m.bodyW(), m.bodyH())
 	if name := questionParam(m.runErrParam); name != "" {
 		for i, nq := range d.questions {
 			if nq.Name == name {

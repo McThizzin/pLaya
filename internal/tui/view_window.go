@@ -30,7 +30,7 @@ func (m Model) viewWindow() string {
 		parts = append(parts, errStyle.Render(truncate(oneLine(e.err), w)))
 	}
 
-	bodyH := h - len(parts) - 1
+	bodyH := h - len(parts)
 	if bodyH < 4 {
 		bodyH = 4
 	}
@@ -47,7 +47,6 @@ func (m Model) viewWindow() string {
 				lipgloss.NewStyle().Width(rightW).Render(right)))
 		parts = append(parts, clipLines(body, bodyH))
 	}
-	parts = append(parts, dimStyle.Render(truncate(windowHelp(e), w)))
 	out := strings.Join(parts, "\n")
 	if h > 0 {
 		out = clipLines(out, h)
@@ -128,14 +127,4 @@ func (e *windowSession) viewWindowDetail(width int) string {
 	b.WriteString(titleStyle.Render("Text") + "\n")
 	b.WriteString(truncate(w.Text, max(20, width*7)))
 	return b.String()
-}
-
-func windowHelp(e *windowSession) string {
-	if e.running {
-		return "esc cancel · running windows sequentially…"
-	}
-	if e.raw {
-		return "j/k select · v decisions · enter run · esc back"
-	}
-	return "enter run · [/] size · o overlap · j/k select · v raw · esc back"
 }

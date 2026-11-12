@@ -97,7 +97,7 @@ func TestBatchLoadRunAndExport(t *testing.T) {
 	f.setDecideFunc(answerAll)
 
 	path := writeStates(t, "states.jsonl", "\"one\"\n{\"text\":\"two\"}\n\"three\"\n")
-	m, _ = press(m, "B")
+	m, _ = press(m, "alt+3")
 	if m.mode != screenBatch || m.batch == nil {
 		t.Fatal("B should open the batch screen")
 	}
@@ -188,7 +188,7 @@ func TestBatchSplitsQuestionChunksAndControls(t *testing.T) {
 	f.setDecideFunc(answerAll)
 
 	path := writeStates(t, "one.jsonl", "\"single state\"\n")
-	m, _ = press(m, "B")
+	m, _ = press(m, "alt+3")
 	if len(m.batch.questions) != 11 || len(m.batch.chunks) != 2 {
 		t.Fatalf("questions/chunks = %d/%d, want 11/2", len(m.batch.questions), len(m.batch.chunks))
 	}
@@ -225,7 +225,7 @@ func TestBatchSplitsQuestionChunksAndControls(t *testing.T) {
 	if m.batch.sortDesc {
 		t.Error("S should reverse the sort")
 	}
-	m, _ = press(m, "f")
+	m, _ = press(m, "F")
 	if m.batch.filter == batch.FilterAll {
 		t.Error("f should change the filter")
 	}
@@ -237,7 +237,7 @@ func TestBatchCancelThenResume(t *testing.T) {
 	m, _ = press(m, "g")
 	f.setDecideFunc(answerAll)
 	path := writeStates(t, "states.jsonl", "\"one\"\n\"two\"\n\"three\"\n")
-	m, _ = press(m, "B")
+	m, _ = press(m, "alt+3")
 	m, cmd := press(m, "ctrl+o")
 	m, _ = press(m, path)
 	m, cmd = press(m, "enter")
@@ -277,7 +277,7 @@ func TestBatchViewFitsTheTerminal(t *testing.T) {
 	f.setDecideFunc(answerAll)
 	path := writeStates(t, "many.jsonl",
 		"\"one\"\n\"two\"\n\"three\"\n\"four\"\n\"five\"\n\"six\"\n\"seven\"\n\"eight\"\n")
-	m, _ = press(m, "B")
+	m, _ = press(m, "alt+3")
 	m, cmd := press(m, "ctrl+o")
 	m, _ = press(m, path)
 	m, cmd = press(m, "enter")
@@ -285,7 +285,7 @@ func TestBatchViewFitsTheTerminal(t *testing.T) {
 	m, cmd = press(m, "r")
 	m = drain(t, m, cmd)
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {
@@ -293,7 +293,7 @@ func TestBatchViewFitsTheTerminal(t *testing.T) {
 		}
 	}
 	m, _ = press(m, "enter")
-	for _, size := range []struct{ w, h int }{{80, 24}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

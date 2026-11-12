@@ -23,7 +23,7 @@ func (m Model) viewHistory() string {
 		header += dimStyle.Render("  ·  " + truncate(oneLine(m.historyErr), 50))
 	}
 
-	bodyH := h - 2 // header, footer
+	bodyH := h - 1 // header
 	if bodyH < 4 {
 		bodyH = 4
 	}
@@ -45,17 +45,7 @@ func (m Model) viewHistory() string {
 		body = clipLines(body, bodyH)
 	}
 
-	help := "j/k move · enter replay · v raw · esc back · ctrl+c quit"
-	switch {
-	case m.running:
-		help = "esc cancel · replaying…"
-	case len(entries) == 0:
-		help = "esc back · ctrl+c quit"
-	case m.historyRaw:
-		help = "j/k move · enter replay · v decisions · esc back"
-	}
-	footer := dimStyle.Render(truncate(help, w))
-	return strings.Join([]string{header, body, footer}, "\n")
+	return strings.Join([]string{header, body}, "\n")
 }
 
 func (m Model) viewHistoryList(entries []history.Entry, bodyH int) string {

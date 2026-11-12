@@ -80,6 +80,25 @@ func (m Model) openHistory() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// reloadHistory re-reads the history file. With no path the store is already
+// in memory, so only the cursor is normalized.
+func (m *Model) reloadHistory() {
+	if m.historyPath == "" {
+		m.historyErr = ""
+		return
+	}
+	st, err := history.Load(m.historyPath, history.DefaultMax)
+	m.history = st
+	if err != nil {
+		m.historyErr = "history: " + err.Error()
+		return
+	}
+	m.historyErr = ""
+	if n := len(st.List()); m.historyCursor >= n {
+		m.historyCursor = max(0, n-1)
+	}
+}
+
 func (m Model) selectedHistory() (history.Entry, bool) {
 	if m.history == nil {
 		return history.Entry{}, false
@@ -107,21 +126,12 @@ func (m *Model) cancelRun() bool {
 
 func (m Model) handleHistoryKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
-	if key == "ctrl+c" {
-		return m, tea.Quit
-	}
 	if m.history == nil {
 		m.history = history.New(history.DefaultMax)
 	}
 	entries := m.history.List()
 
 	switch key {
-	case "esc":
-		if m.cancelRun() {
-			m.notice = "cancelled the in-flight replay"
-			return m, nil
-		}
-		m.mode = screenBrowse
 	case "up", "k":
 		if m.historyCursor > 0 {
 			m.historyCursor--
@@ -146,6 +156,7 @@ func (m Model) handleHistoryKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		e := entries[clamp(m.historyCursor, 0, len(entries)-1)]
 		m.running, m.runErr, m.runErrParam = true, "", ""
+		m.runTab = 7
 		m.runSeq++
 		ctx, cancel := context.WithCancel(context.Background())
 		m.runCancel = cancel

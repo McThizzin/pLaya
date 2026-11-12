@@ -25,7 +25,7 @@ func openForge(t *testing.T, f *fake) Model {
 	t.Helper()
 	m := connected(t, f)
 	m, _ = press(m, "g")
-	next, _ := press(m, "Q")
+	next, _ := press(m, "alt+2")
 	m = next
 	if m.mode != screenForge || m.forgeEd == nil {
 		t.Fatalf("forge not open (mode=%v)", m.mode)
@@ -271,9 +271,9 @@ func TestResetDraft(t *testing.T) {
 	if !m.dirty(m.presets[m.cursor]) {
 		t.Fatal("draft should be dirty")
 	}
-	m, _ = press(m, "R")
+	m, _ = press(m, "ctrl+r")
 	if m.dirty(m.presets[m.cursor]) {
-		t.Error("R should reset the draft")
+		t.Error("ctrl+r should reset the draft")
 	}
 	if got := m.currentDraft().stateText(); strings.Contains(got, "changed") {
 		t.Errorf("state after reset = %q", got)
@@ -306,7 +306,7 @@ func TestQuitKeysInEditor(t *testing.T) {
 func TestEditorViewsFitTerminal(t *testing.T) {
 	f := newFake(t)
 	m := openForge(t, f)
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		m = next.(Model)
 		lines := strings.Split(plain(m.View()), "\n")
@@ -316,7 +316,7 @@ func TestEditorViewsFitTerminal(t *testing.T) {
 	}
 	m, _ = press(m, "esc")
 	m = openState(t, f)
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		m = next.(Model)
 		lines := strings.Split(plain(m.View()), "\n")

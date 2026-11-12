@@ -36,7 +36,7 @@ func TestABCompareShowsDifferences(t *testing.T) {
 	m, _ = press(m, "g")
 	f.setDecideFunc(byModel(abBodyAlt()))
 
-	m, _ = press(m, "A")
+	m, _ = press(m, "alt+5")
 	if m.mode != screenAB || m.ab == nil {
 		t.Fatal("A should open the A/B screen")
 	}
@@ -85,7 +85,7 @@ func TestABCompareUsesSecondServer(t *testing.T) {
 	secondary.decideBody = guardBody
 
 	m, _ = press(m, "g")
-	m, _ = press(m, "A")
+	m, _ = press(m, "alt+5")
 	m, _ = press(m, "tab")
 	if m.ab.selected != 1 {
 		t.Fatalf("tab selected %d, want B", m.ab.selected)
@@ -116,7 +116,7 @@ func TestABCompareUsesSecondServer(t *testing.T) {
 		t.Errorf("cross-server view should show the disagreement:\n%s", out)
 	}
 
-	m, _ = press(m, "r")
+	m, _ = press(m, "R")
 	if m.ab.targets[1].URL != primary.URL {
 		t.Errorf("r should reset B to the primary URL, got %q", m.ab.targets[1].URL)
 	}
@@ -127,7 +127,7 @@ func TestABCancelIgnoresLateResults(t *testing.T) {
 	m := connected(t, f)
 	m, _ = press(m, "g")
 	f.setDecideFunc(byModel(abBodyAlt()))
-	m, _ = press(m, "A")
+	m, _ = press(m, "alt+5")
 
 	m, cmd := press(m, "enter")
 	if !m.ab.running {
@@ -157,7 +157,7 @@ func TestABOneTargetFailureStillShowsTheOther(t *testing.T) {
 	deadURL := dead.URL
 	dead.Close()
 
-	m, _ = press(m, "A")
+	m, _ = press(m, "alt+5")
 	m.ab.targets[1].URL = deadURL
 	m, cmd := press(m, "enter")
 	m = drain(t, m, cmd)
@@ -197,11 +197,11 @@ func TestABViewFitsTheTerminal(t *testing.T) {
 	m := connected(t, f)
 	m, _ = press(m, "g")
 	f.setDecideFunc(byModel(abBodyAlt()))
-	m, _ = press(m, "A")
+	m, _ = press(m, "alt+5")
 	m, cmd := press(m, "enter")
 	m = drain(t, m, cmd)
 
-	for _, size := range []struct{ w, h int }{{80, 24}, {120, 40}, {60, 12}} {
+	for _, size := range []struct{ w, h int }{{100, 30}, {120, 40}, {140, 50}} {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: size.w, Height: size.h})
 		out := plain(next.(Model).View())
 		if lines := strings.Split(out, "\n"); len(lines) > size.h {

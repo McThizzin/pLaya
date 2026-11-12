@@ -105,7 +105,7 @@ func (m Model) openAB() (tea.Model, tea.Cmd) {
 	if m.client != nil {
 		server = m.client.BaseURL
 	}
-	m.ab = newABSession(d, m.model, server, m.health, m.width, m.height)
+	m.ab = newABSession(d, m.model, server, m.health, m.bodyW(), m.bodyH())
 	m.mode = screenAB
 	return m, nil
 }
@@ -326,31 +326,15 @@ func (m Model) handleABKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	switch key {
-	case "ctrl+c", "q":
-		return m, tea.Quit
-	case "esc":
-		if m.cancelAB() {
-			return m, nil
-		}
-		m.mode = screenBrowse
 	case "tab", "shift+tab":
 		e.selected = 1 - e.selected
 		e.status = abName(e.selected) + " selected"
-	case "m":
-		if !e.running {
-			e.cycleModel(m.health)
-		}
 	case "u":
 		if !e.running {
 			e.editing = true
 			e.input.SetValue(e.targets[e.selected].URL)
 			e.input.CursorEnd()
 			return m, e.input.Focus()
-		}
-	case "r":
-		if !e.running {
-			e.targets[e.selected].URL = e.primaryURL
-			e.status = abName(e.selected) + " URL reset"
 		}
 	case "enter":
 		if !e.running {

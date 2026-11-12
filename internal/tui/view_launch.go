@@ -29,11 +29,10 @@ func (m Model) viewLaunch() string {
 		parts = append(parts, m.launchFieldLine(e, i, w))
 	}
 
-	if bodyH := h - len(parts) - 1; bodyH > 0 {
+	if bodyH := h - len(parts); bodyH > 0 {
 		body := clipLines(m.launchBody(e, w, bodyH), bodyH)
 		parts = append(parts, lipgloss.NewStyle().Height(bodyH).Render(body))
 	}
-	parts = append(parts, dimStyle.Render(truncate(m.launchHelp(e), w)))
 	out := strings.Join(parts, "\n")
 	if h <= 0 {
 		return ""
@@ -105,17 +104,4 @@ func (m Model) launchBody(e *launchSession, w, bodyH int) string {
 		b.WriteString(truncate(line, w) + "\n")
 	}
 	return b.String()
-}
-
-func (m Model) launchHelp(e *launchSession) string {
-	if e == nil {
-		return ""
-	}
-	if e.editing {
-		return "enter apply · esc cancel"
-	}
-	if e.starting {
-		return "waiting for /health · esc cancel wait · x stop · q quit"
-	}
-	return "j/k field · e edit · s start · x stop · a attach · w warm all · esc back · q quit"
 }
